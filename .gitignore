@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-specific
+data/
+results/**/*.npz
+*.safetensors
+.venv/
+*.log
