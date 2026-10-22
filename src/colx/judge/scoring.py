@@ -59,12 +59,26 @@ def length_batches(lengths: list[int], max_tokens: int) -> list[list[int]]:
     return batches
 
 
+def padded_positions(attention_mask: torch.Tensor) -> torch.Tensor:
+    """Position ids that skip left padding (real tokens start at 0), as `generate` does."""
+    return (attention_mask.long().cumsum(-1) - 1).clamp(min=0)
+
+
 @torch.inference_mode()
+def last_logits_ids(model, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    """Logits at the last position of a left-padded batch, with padding-aware positions."""
+    positions = padded_positions(attention_mask)
+    out = model(input_ids=input_ids, attention_mask=attention_mask, position_ids=positions,
+                use_cache=False, logits_to_keep=1)  # fmt: skip
+    return out.logits[:, -1].float().cpu()
+
+
 def last_logits(model, tokenizer, texts: list[str]) -> torch.Tensor:
     """Logits at each text's last position, one left-padded batch: [n, vocab]."""
     enc = tokenizer(texts, return_tensors="pt", padding=True, add_special_tokens=False)
-    enc = {k: v.to(model.device) for k, v in enc.items()}
-    return model(**enc, use_cache=False, logits_to_keep=1).logits[:, -1].float().cpu()
+    return last_logits_ids(
+        model, enc["input_ids"].to(model.device), enc["attention_mask"].to(model.device)
+    )
 
 
 @torch.inference_mode()

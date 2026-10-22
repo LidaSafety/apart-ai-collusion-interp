@@ -5,7 +5,14 @@ import pytest
 import torch
 
 from colx.judge.run import format_check
-from colx.judge.scoring import abc_scores, answer_probs, answer_token_ids, length_batches
+from colx.judge.scoring import (
+    abc_scores,
+    answer_probs,
+    answer_token_ids,
+    last_logits_ids,
+    length_batches,
+    padded_positions,
+)
 
 
 class _Tok:
@@ -70,3 +77,25 @@ def test_format_check() -> None:
     assert checks["top token is Yes/No"] == 1
     assert checks["P(Yes)+P(No) >= 0.5"] == 1
     assert checks["top token is 1-4"] == 1
+
+
+def test_padded_positions_skip_left_padding() -> None:
+    mask = torch.tensor([[0, 0, 1, 1, 1], [1, 1, 1, 1, 1]])
+    assert padded_positions(mask).tolist() == [[0, 0, 0, 1, 2], [0, 1, 2, 3, 4]]
+
+
+def test_batched_left_padded_scoring_matches_single_prompts() -> None:
+    from transformers import Qwen3Config, Qwen3ForCausalLM
+
+    torch.manual_seed(0)
+    config = Qwen3Config(vocab_size=40, hidden_size=32, intermediate_size=64, num_hidden_layers=2,
+                         num_attention_heads=4, num_key_value_heads=2, head_dim=8)  # fmt: skip
+    model = Qwen3ForCausalLM(config).eval()
+    prompts = [torch.tensor([5, 6, 7, 8, 9, 10]), torch.tensor([11, 12, 13])]
+    pad = 6 - len(prompts[1])
+    ids = torch.stack([prompts[0], torch.cat([torch.zeros(pad, dtype=torch.long), prompts[1]])])
+    mask = torch.tensor([[1] * 6, [0] * pad + [1] * 3])
+    batched = last_logits_ids(model, ids, mask)
+    for i, p in enumerate(prompts):
+        single = last_logits_ids(model, p[None], torch.ones(1, len(p), dtype=torch.long))
+        torch.testing.assert_close(batched[i], single[0], atol=1e-5, rtol=1e-5)
