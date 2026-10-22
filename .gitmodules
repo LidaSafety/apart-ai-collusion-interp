@@ -1,3 +1,6 @@
 [submodule "third_party/narcbench"]
 	path = third_party/narcbench
 	url = https://github.com/aaronrose227/narcbench.git
+[submodule "third_party/jacobian-lens"]
+	path = third_party/jacobian-lens
+	url = https://github.com/anthropics/jacobian-lens
