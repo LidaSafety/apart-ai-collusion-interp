@@ -12,8 +12,10 @@ from rich.console import Console
 from rich.table import Table
 
 from colx import __version__
+from colx.cli_lens_judge import app as lens_judge_app
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+app.add_typer(lens_judge_app, name="lens-judge")
 console = Console()
 
 DATA_DIR = Path("data")

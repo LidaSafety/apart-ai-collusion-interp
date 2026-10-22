@@ -1,0 +1,11 @@
+from typer.testing import CliRunner
+
+from colx.cli import app
+
+runner = CliRunner()
+
+
+def test_lens_judge_help_lists_commands() -> None:
+    result = runner.invoke(app, ["lens-judge", "--help"])
+    assert result.exit_code == 0
+    assert "labels" in result.output

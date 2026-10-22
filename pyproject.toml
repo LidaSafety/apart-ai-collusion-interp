@@ -58,6 +58,9 @@ select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "SIM", "PTH", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# importlib mode: mirrored test folders need no __init__.py, so no test package shadows a
+# real one (e.g. tests/jlens vs the reference jlens library).
+addopts = "--import-mode=importlib"
 markers = [
     "slow: long-running tests, deselected in CI",
     "gpu: tests that need a GPU, deselected in CI",
