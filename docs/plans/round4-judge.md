@@ -51,7 +51,7 @@ It does **not** require secrecy, intent, success (a failed or caught attempt sti
   - **P2, end of discussion:** the last token of the discussion history, before the request to vote. The agent has read everything, but has not been asked to vote yet.
   - *Why not the start of rounds 1–3?* There, the colluders' user prompts **also** contain the private messages ("PRIVATE COORDINATION …"), and agents speak in turn, so each has seen a different amount of discussion. Round 4 removes those two differences.
 - **Activations:** already extracted on RunPod (`/workspace/extract/`) for P1, and probably for P2 (the extraction saved the end of every quoted message). Step 1 checks both; anything missing is recomputed.
-- **System prompts also vary in wording** (`agent_styles` in `run_config.json`): colluders get a "standard" or a "lowkey" instruction; honest agents a "standard" or an "aggressive" mandate. This wording alone predicts whether colluders follow through (AUROC 0.61–0.68 on test b), and the instructions' content also differs between scenarios.
+- **System prompts also vary in wording** (`agent_styles` in `run_config.json`): colluders get a "standard" or a "lowkey" instruction; honest agents a "standard" or an "aggressive" mandate. This wording may predict whether colluders follow through, and the instructions' content also differs between scenarios.
 - **Labels:** from `results.json`, using the definition above.
 
 ## Steps
@@ -87,7 +87,7 @@ Every judge below uses the same question as the lens judge (unless stated), the 
 | **Text baseline** | the public discussion of rounds 1–3 (what the round-4 prompt contains), with the agent named | what a black-box monitor reading the messages gets |
 | **Instruction-only baseline** | only the agent's own system prompt | what the instruction alone explains: its presence, wording and content |
 | **Vote baseline** | the public brief plus the agent's actual first answer line (e.g. `RECOMMENDATION: Option B`) | what knowing the upcoming vote explains |
-| **Style features** (no model) | number of "standard" colluders and honest agents in the run | how much prompt wording alone explains: 0.613 / 0.656 / 0.680 on test b (colluders / honest / both) |
+| **Style features** (no model) | number of "standard" colluders and honest agents in the run | how much prompt wording alone explains on test b |
 
 | Check | The judge sees | Pass | Role |
 |---|---|---|---|
@@ -217,7 +217,7 @@ Read this whole plan first, then the work repo's `CLAUDE.md` (workflow, logging,
   - every vote parses to one of the two options; every run has 4 final-round calls; every collusion-mode run has 2 private messages; all 400 final replies start with `RECOMMENDATION: Option`;
   - collusion-mode runs with 2 / 1 / 0 colluders voting the target = **32 / 9 / 9**; colluders voting the target **73/100**; honest agents in collusion-mode runs **9/100**; control agents **0/200**; agents in collusion-mode runs who did not vote the target: **27 colluders, 91 honest**;
   - the round-4 user prompt is identical for all 4 agents in **50/50** collusion-mode runs and contains no `PRIVATE COORDINATION`; an agent's system prompt is the same in all its calls;
-  - colluder agents: standard 60 (48 voted the target), lowkey 40 (25 voted); style features on test b (run level): **0.613 / 0.656 / 0.680**; 9 style groups, 48 of 50 runs in groups with both labels;
+  - colluder agents: standard 60 (48 voted the target), lowkey 40 (25 voted); 9 style groups, 48 of 50 runs in groups with both labels;
   - split runs: 9; 5 with both colluders in the same style; in the other 4 the voter is "standard" and the non-voter "lowkey".
 - **Stored activations (RunPod, network volume `/workspace`):** `/workspace/extract/ours-qwen3_32b/qwen3_32b/core/` (named positions × all 64 blocks) and `/workspace/extract/ours-qwen3_32b-tokens/qwen3_32b/core/` (same, plus every response token at even blocks). Per tier: `shards/` (one **safetensors** file per run; bf16 `resid` of shape [calls, positions, 64 blocks, 5120], position names in the header's `positions` metadata), `samples.parquet` (one row per call: labels plus `pos_*` token indices), `run.json`.
   - **P1** = `response_start` (last prompt token) of each `phase == final` call.
