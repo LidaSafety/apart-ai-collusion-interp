@@ -167,7 +167,7 @@ with `ci.yml` when the workflow changes.
 `development`). It is written from scratch and is independent of the earlier
 `experiments/narcbench/*` code: do not import, copy or port code from those branches. Raw
 inputs (NARCBench transcripts, stored activations) may be reused. First experiment:
-`experiments/lens-judge/round4-judge`. An LLM judge reads each agent's J-lens words at the
+`experiments/lens-judge/round4-judge`. An LLM judge reads each agent's J-lens tokens at the
 final-round prompt end, and an AUROC tests whether its scores separate collusion runs from
 the rest.
 - Experiment outputs go to `results/` (gitignored). Code, configs, and tests are committed;
