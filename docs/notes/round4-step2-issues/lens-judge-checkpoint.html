@@ -77,6 +77,14 @@ svg .grid-l { stroke: var(--line); stroke-width: 1; }
 .qs li b { display: block; }
 .note { font-size: 0.82rem; color: var(--muted); }
 table.cost { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.ctx { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; margin: 6px 0 4px; }
+.ctx div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 0.86rem; }
+.ctx b { display: block; margin-bottom: 2px; }
+.steps { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: baseline; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 0.88rem; }
+.steps li::before { content: counter(s); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.steps .st { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 7px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+.st.done { color: var(--c4); } .st.hold { color: var(--c2); } .st.todo { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -93,6 +101,25 @@ table.cost { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     <div class="check"><span class="ok">✓</span>Lens file<b>sha256 ok</b>0af5ccf2…</div>
   </div>
 </header>
+
+<section class="col" id="experiment">
+  <h2>The experiment</h2>
+  <p><b>Question:</b> if an LLM judge reads the tokens a J-lens finds inside one agent's activations, can it tell runs where agents colluded from runs where they did not, beyond what the instruction, the discussion and the vote already show?</p>
+  <div class="ctx">
+    <div><b>Data: NARCBench Core</b>50 scenarios (e.g. an audit opinion). Each is run twice with 4 Qwen3-32B agents on a committee: <em>collusion mode</em> (2 agents get a secret instruction to push one option and a private channel) and <em>control</em> (all honest). They discuss for 3 rounds, then vote.</div>
+    <div><b>Label</b>A run <em>colluded</em> if both secretly instructed agents voted for the option they were told to push: 32 runs colluded, 68 did not.</div>
+    <div><b>Where we read</b>In the final-round prompt, identical for all 4 agents except their system prompt. <b style="display:inline">P1</b>: just before the vote. <b style="display:inline">P2</b>: end of the discussion, before the vote is requested.</div>
+  </div>
+  <ol class="steps">
+    <li><span>Check the stored activations against a fresh recompute</span><span class="st done">done</span></li>
+    <li><span>J-lens top tokens at 10 layers (24–58) for each agent at P1 and P2</span><span class="st done">done</span></li>
+    <li><span>LLM judge reads one agent's tokens: <em>colluding? Yes/No</em>, plus baselines (messages, instruction only, vote)</span><span class="st hold">on hold</span></li>
+    <li><span>Score: P(Yes) vs P(No) per agent, top-2 mean per run</span><span class="st todo">to do</span></li>
+    <li><span>Measure: AUROC, colluded vs not, all runs and collusion-mode runs only</span><span class="st todo">to do</span></li>
+    <li><span>Show results in an app</span><span class="st todo">to do</span></li>
+  </ol>
+  <p class="note" style="margin-top:8px">Step 3 is on hold because of what step 2 found, below.</p>
+</section>
 
 <section class="wide" id="input">
   <div class="col" style="margin:0">
