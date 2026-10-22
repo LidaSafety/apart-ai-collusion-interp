@@ -3,14 +3,18 @@
 from pathlib import Path
 from typing import Annotated
 
+import pandas as pd
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from colx.extract.check import DEFAULT_RUNS, blocks_below, write_check
 from colx.extract.stored import write_stored
+from colx.jlens.reference import write_reference_check
+from colx.jlens.tokens import write_lens_tokens
 from colx.narcbench.write import write_label_tables
-from colx.provenance import MODEL_ID
+from colx.provenance import LENS_PATH, MODEL_ID
+from colx.qwen import local_dir
 
 app = typer.Typer(no_args_is_help=True, help="Round-4 lens-judge experiment.")
 console = Console()
@@ -22,6 +26,7 @@ CoreDir = Annotated[Path, typer.Option(help="NARCBench Core transcripts (100 run
 EXTRACT_DIR = Path("/workspace/extract/ours-qwen3_32b/qwen3_32b/core")
 ExtractDir = Annotated[Path, typer.Option(help="Stored extraction (shards/ and samples.parquet).")]
 ModelPath = Annotated[str, typer.Option(help="Qwen3-32B: Hub id or a local snapshot folder.")]
+LensPath = Annotated[Path, typer.Option(help="J-lens file (neuronpedia Qwen3-32B lens.pt).")]
 OutDir = Annotated[Path, typer.Option(help="Output folder of the round-4 experiment.")]
 
 
@@ -67,3 +72,32 @@ def check_activations(
     _print_counts("Activation check verdicts", verdicts)
     if not all(verdicts.values()):
         raise typer.Exit(code=1)
+
+
+@app.command("check-lens")
+def check_lens(
+    model: ModelPath = MODEL_ID, lens: LensPath = LENS_PATH, out_dir: OutDir = OUT_DIR
+) -> None:
+    """Check our J-lens readout against the pinned reference library at layer 39 (GPU)."""
+    result = write_reference_check(model, lens, out_dir)
+    top = result.pop("reference_top25")
+    _print_counts("J-lens reference check", result)
+    console.print("Reference top-25 at layer 39:", top)
+    if not (result["same_top25_tokens"] and result["logits_within_tolerance"]):
+        raise typer.Exit(code=1)
+
+
+@app.command("lens-tokens")
+def lens_tokens(
+    model: ModelPath = MODEL_ID,
+    lens: LensPath = LENS_PATH,
+    out_dir: OutDir = OUT_DIR,
+    device: Annotated[str, typer.Option(help="cpu or cuda; the result is the same.")] = "cpu",
+) -> None:
+    """Top-25 J-lens tokens at the 10 layers, for every agent at P1 and P2."""
+    summary = write_lens_tokens(local_dir(model), lens, out_dir, device)
+    _print_counts("J-lens tokens", summary)
+    overlap = pd.read_parquet(out_dir / "lens_overlap.parquet")
+    console.print("Within-run overlap of the agents' top-25 lists (mean):")
+    console.print(overlap.pivot(index="layer", columns="position", values="mean").round(3))
+    console.print(f"Wrote {out_dir / 'lens_tokens.parquet'} and {out_dir / 'lens_grids.parquet'}")
