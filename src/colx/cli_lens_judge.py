@@ -10,6 +10,7 @@ from rich.table import Table
 
 from colx.extract.check import DEFAULT_RUNS, blocks_below, write_check
 from colx.extract.stored import write_stored
+from colx.jlens.diagnostic import run_diagnostic
 from colx.jlens.reference import write_reference_check
 from colx.jlens.tokens import write_lens_tokens
 from colx.narcbench.write import write_label_tables
@@ -101,3 +102,15 @@ def lens_tokens(
     console.print("Within-run overlap of the agents' top-25 lists (mean):")
     console.print(overlap.pivot(index="layer", columns="position", values="mean").round(3))
     console.print(f"Wrote {out_dir / 'lens_tokens.parquet'} and {out_dir / 'lens_grids.parquet'}")
+
+
+@app.command()
+def diagnose(
+    model: ModelPath = MODEL_ID,
+    lens: LensPath = LENS_PATH,
+    extract_dir: ExtractDir = EXTRACT_DIR,
+    out_dir: OutDir = OUT_DIR,
+) -> None:
+    """Exploratory lens diagnostic: library examples, system_end and relative P2 (GPU)."""
+    verdicts = run_diagnostic(model, lens, extract_dir, out_dir)
+    console.print_json(data=verdicts)

@@ -57,10 +57,12 @@ def _shard_positions(shard: Path) -> list[str]:
         return json.loads(f.metadata()["positions"])
 
 
-def read_shard_rows(shard: Path, rows: list[int]) -> torch.Tensor:
-    """Read the residuals of `rows` at P1 and P2: [len(rows), 2, blocks, d_model], bf16."""
+def read_shard_rows(
+    shard: Path, rows: list[int], positions: tuple[str, ...] = (P1_NAME, P2_NAME)
+) -> torch.Tensor:
+    """Read the residuals of `rows` at named positions: [rows, positions, blocks, d], bf16."""
     names = _shard_positions(shard)
-    columns = [names.index(READ_POSITIONS["P1"]), names.index(READ_POSITIONS["P2"])]
+    columns = [names.index(name) for name in positions]
     with safe_open(str(shard), "pt") as f:
         resid = f.get_slice("resid")
         valid = f.get_tensor("valid")
