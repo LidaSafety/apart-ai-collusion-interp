@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from colx.analysis.write import analyse as run_analysis
 from colx.extract.check import DEFAULT_RUNS, blocks_below, write_check
 from colx.extract.stored import write_stored
 from colx.jlens.diagnostic import run_diagnostic
@@ -142,3 +143,16 @@ def judge(
     """Score every judge prompt (lens judge, controls, baselines) with Qwen3-32B (GPU)."""
     checks = run_judges(model, out_dir, core_dir, dry_run, log=console.print)
     _print_counts("Answer-format checks", checks)
+
+
+@app.command()
+def analyse(
+    out_dir: OutDir = OUT_DIR,
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """AUROCs, bootstrap intervals, shuffle tests, checks and the plan's reading."""
+    summary = run_analysis(out_dir, n_boot, n_perm, log=console.print)
+    for r in summary["readings"]:
+        head = f"[bold]{r['arm']} {r['position']}[/]: gate={r['gate']} a={r['a']} b={r['b']}"
+        console.print(f"{head} → {r['meaning']}")
