@@ -14,6 +14,7 @@ from colx.jlens.diagnostic import run_diagnostic
 from colx.jlens.filtered import write_views
 from colx.jlens.reference import write_reference_check
 from colx.jlens.tokens import write_lens_tokens
+from colx.judge.run import run_judges
 from colx.narcbench.write import write_label_tables
 from colx.provenance import LENS_PATH, MODEL_ID
 from colx.qwen import local_dir
@@ -127,3 +128,17 @@ def lens_tokens_filtered(
     """Exploratory: top-25 words-only lens tokens, raw and with common content removed."""
     summary = write_views(local_dir(model), lens, out_dir, device)
     _print_counts("Filtered lens tokens (exploratory)", summary)
+
+
+@app.command()
+def judge(
+    model: ModelPath = MODEL_ID,
+    out_dir: OutDir = OUT_DIR,
+    core_dir: CoreDir = CORE_DIR,
+    dry_run: Annotated[
+        bool, typer.Option(help="2 runs, format checks only (no scores shown).")
+    ] = False,
+) -> None:
+    """Score every judge prompt (lens judge, controls, baselines) with Qwen3-32B (GPU)."""
+    checks = run_judges(model, out_dir, core_dir, dry_run, log=console.print)
+    _print_counts("Answer-format checks", checks)
