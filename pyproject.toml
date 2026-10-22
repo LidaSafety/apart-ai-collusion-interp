@@ -16,6 +16,11 @@ dependencies = [
     "matplotlib>=3.9",
     "pandas>=2.2",
     "tqdm>=4.66",
+    "marimo>=0.25.2",
+    "altair>=6.3.0",
+    "transformers==5.19.0",
+    "accelerate>=1.15.0",
+    "pyarrow>=26.0.0",
 ]
 
 [project.scripts]
