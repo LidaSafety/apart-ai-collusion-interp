@@ -61,6 +61,11 @@ def split_final_prompt(user_prompt: str, public_messages: tuple[str, ...]) -> Fi
     return FinalPrompt(brief=brief, discussion=discussion, request=rest[len(discussion) + 2 :])
 
 
+def join_final_prompt(brief: str, discussion: str, request: str) -> str:
+    """Rebuild the round-4 user prompt from its three parts (inverse of split_final_prompt)."""
+    return f"{brief}{DISCUSSION_HEADER}{discussion}\n\n{request}"
+
+
 def _final_agents(config: dict, results: dict, calls: list[dict]) -> tuple[Agent, ...]:
     """Build the agents from their final-phase calls, in call order."""
     finals = [c for c in calls if c["phase"] == "final"]

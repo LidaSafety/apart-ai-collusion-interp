@@ -7,8 +7,10 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from colx.extract.check import DEFAULT_RUNS, blocks_below, write_check
 from colx.extract.stored import write_stored
 from colx.narcbench.write import write_label_tables
+from colx.provenance import MODEL_ID
 
 app = typer.Typer(no_args_is_help=True, help="Round-4 lens-judge experiment.")
 console = Console()
@@ -19,6 +21,7 @@ OUT_DIR = Path("results/round4-judge")
 CoreDir = Annotated[Path, typer.Option(help="NARCBench Core transcripts (100 run folders).")]
 EXTRACT_DIR = Path("/workspace/extract/ours-qwen3_32b/qwen3_32b/core")
 ExtractDir = Annotated[Path, typer.Option(help="Stored extraction (shards/ and samples.parquet).")]
+ModelPath = Annotated[str, typer.Option(help="Qwen3-32B: Hub id or a local snapshot folder.")]
 OutDir = Annotated[Path, typer.Option(help="Output folder of the round-4 experiment.")]
 
 
@@ -46,3 +49,21 @@ def activations(extract_dir: ExtractDir = EXTRACT_DIR, out_dir: OutDir = OUT_DIR
     summary = write_stored(extract_dir, out_dir)
     _print_counts("Stored round-4 activations", summary)
     console.print(f"Wrote {out_dir / 'activations.safetensors'} and its index table")
+
+
+@app.command("check-activations")
+def check_activations(
+    model: ModelPath = MODEL_ID,
+    out_dir: OutDir = OUT_DIR,
+    runs: Annotated[list[str] | None, typer.Option(help="Runs to recompute.")] = None,
+    with_response: Annotated[
+        bool, typer.Option(help="Diagnostic: also run the reply tokens, as the extraction did.")
+    ] = False,
+) -> None:
+    """Recompute 2 runs on the GPU and compare with the stored P1/P2 residuals."""
+    table, verdicts = write_check(model, out_dir, tuple(runs or DEFAULT_RUNS), with_response)
+    console.print(table.drop(columns=["run_id", "cos_p1", "cos_p2"]).T.to_string())
+    _print_counts("Blocks with cosine below 0.999", blocks_below(table))
+    _print_counts("Activation check verdicts", verdicts)
+    if not all(verdicts.values()):
+        raise typer.Exit(code=1)
