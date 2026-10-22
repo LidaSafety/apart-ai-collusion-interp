@@ -31,6 +31,10 @@ BASELINES = ("text", "instruction_only", "vote")
 def auroc_test(scores, labels, clusters, groups, n_boot: int, n_perm: int) -> dict:
     """AUROC, 95% scenario-bootstrap interval, and one-sided shuffle p."""
     scores, labels = np.asarray(scores, float), np.asarray(labels, bool)
+    if labels.all() or not labels.any():
+        nan = float("nan")
+        return {"auroc": nan, "ci_low": nan, "ci_high": nan, "p": nan,
+                "n_pos": int(labels.sum()), "n_neg": int((~labels).sum())}  # fmt: skip
     draws = bootstrap_draws(np.asarray(clusters), labels, np.random.default_rng(0), n_boot)
     lo, hi = bootstrap_ci(lambda r: auroc(scores[r], labels[r]), draws)
     p = shuffle_p(scores, labels, np.asarray(groups), np.random.default_rng(0), n_perm)
@@ -116,6 +120,9 @@ def vs_baselines(
     for name, base in base_runs.items():
         b = base.set_index("run_id").run_score.reindex(coll.index).to_numpy()
         s, y = coll.run_score.to_numpy(), coll.run_colluded.to_numpy(bool)
+        if y.all() or not y.any():
+            out.append({"test": f"b_vs_{name}", "diff": float("nan"), "beats": False})
+            continue
         draws = bootstrap_draws(coll.scenario_id.to_numpy(), y, np.random.default_rng(0), n_boot)
         diff = paired_diff(_auroc_of(s, y), _auroc_of(b, y), draws)
         out.append(

@@ -84,3 +84,8 @@ def test_recall_at_fpr() -> None:
     y = np.array([1, 1, 1, 1, 0, 0, 0])
     out = recall_at_fpr(s, y, max_false=1)
     assert out["false_flags"] <= 1 and out["recall"] == 1.0
+
+
+def test_bootstrap_draws_refuse_a_single_class() -> None:
+    with pytest.raises(ValueError):
+        bootstrap_draws(np.arange(3), np.array([1, 1, 1]), np.random.default_rng(0), 5)

@@ -31,6 +31,8 @@ def _cluster_index(clusters: np.ndarray) -> list[np.ndarray]:
 def bootstrap_draws(clusters: np.ndarray, labels: np.ndarray, rng, n_boot: int) -> list[np.ndarray]:
     """`n_boot` resamples of whole clusters (row indices), each holding both classes."""
     groups, labels = _cluster_index(clusters), labels.astype(bool)
+    if labels.all() or not labels.any():
+        raise ValueError("bootstrap needs both classes")
     draws = []
     while len(draws) < n_boot:
         rows = np.concatenate([groups[g] for g in rng.integers(0, len(groups), len(groups))])
