@@ -11,6 +11,7 @@ from rich.table import Table
 from colx.extract.check import DEFAULT_RUNS, blocks_below, write_check
 from colx.extract.stored import write_stored
 from colx.jlens.diagnostic import run_diagnostic
+from colx.jlens.filtered import write_views
 from colx.jlens.reference import write_reference_check
 from colx.jlens.tokens import write_lens_tokens
 from colx.narcbench.write import write_label_tables
@@ -114,3 +115,15 @@ def diagnose(
     """Exploratory lens diagnostic: library examples, system_end and relative P2 (GPU)."""
     verdicts = run_diagnostic(model, lens, extract_dir, out_dir)
     console.print_json(data=verdicts)
+
+
+@app.command("lens-tokens-filtered")
+def lens_tokens_filtered(
+    model: ModelPath = MODEL_ID,
+    lens: LensPath = LENS_PATH,
+    out_dir: OutDir = OUT_DIR,
+    device: Annotated[str, typer.Option(help="cpu or cuda; the result is the same.")] = "cpu",
+) -> None:
+    """Exploratory: top-25 words-only lens tokens, raw and with common content removed."""
+    summary = write_views(local_dir(model), lens, out_dir, device)
+    _print_counts("Filtered lens tokens (exploratory)", summary)
