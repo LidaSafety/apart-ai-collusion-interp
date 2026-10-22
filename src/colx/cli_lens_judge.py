@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from colx.analysis.write import analyse as run_analysis
+from colx.app import launch
 from colx.extract.check import DEFAULT_RUNS, blocks_below, write_check
 from colx.extract.stored import write_stored
 from colx.jlens.diagnostic import run_diagnostic
@@ -156,3 +157,13 @@ def analyse(
     for r in summary["readings"]:
         head = f"[bold]{r['arm']} {r['position']}[/]: gate={r['gate']} a={r['a']} b={r['b']}"
         console.print(f"{head} → {r['meaning']}")
+
+
+@app.command("app")
+def results_app(
+    port: Annotated[int, typer.Option(help="Port to serve on.")] = 2718,
+    headless: Annotated[bool, typer.Option(help="Don't try to open a browser.")] = True,
+) -> None:
+    """Open the marimo results explorer (reads result files only)."""
+    console.print(f"Serving the round-4 app on http://localhost:{port}")
+    raise typer.Exit(code=launch(port, headless))
