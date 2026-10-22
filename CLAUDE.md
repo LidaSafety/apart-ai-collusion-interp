@@ -20,7 +20,6 @@ step. Optimize for readability over cleverness:
 
 - Write code that a reader can verify against the paper or method it implements.
 - Explain *research* decisions in docstrings: what an experiment does and why, in plain terms.
-- Do not add layers of abstraction for a hypothetical future. Add them when a second use exists.
 - When you make a non-obvious choice (a hyperparameter, a tensor shape, a layer index), state
   the reason in one comment or docstring line.
 - Prefer a small, boring solution over a smart one. Elegance here means simplicity.
@@ -145,9 +144,35 @@ with `ci.yml` when the workflow changes.
 - Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, ...).
   A commit-msg hook rejects other formats. On push to `main`, python-semantic-release bumps
   the version and writes `CHANGELOG.md` — never edit `CHANGELOG.md` or the version by hand.
-- **Branch model:** work happens on `feat/**` (infrastructure) and `experiments/**`
-  (experiment series) branches, raised as PRs into `development`; `development` merges to
-  `main` to cut a release. Never push directly to `main` or `development`.
-- Small PRs / commits: one logical change each, tests included in the same commit.
+- **Branch model:** see the table below. Never push changes directly to `main`, `development`
+  or an `experiments/<series>/dev` branch; everything lands by PR.
+- **Few PRs, clear commits:** one branch per experiment, built as a sequence of small
+  Conventional Commits (one logical step each, tests in the same commit), merged with a
+  **merge commit** so every step stays readable in the history. Do not squash.
+- Commit scopes follow the package area (`narcbench`, `extract`, `jlens`, `judge`,
+  `analysis`, `cli`, `deps`, `results`); omit the scope for repo-wide changes.
+
+### Branches and merges
+
+| Branch | Role | PR into | Merge type |
+|---|---|---|---|
+| `main` | releases (python-semantic-release on push) | — | — |
+| `development` | all finished work | `main` | merge commit |
+| `experiments/<series>/dev` | integration branch of one experiment series | `development` | merge commit |
+| `experiments/<series>/<experiment>` | **one whole experiment**, step by step in commits | `experiments/<series>/dev` | **merge commit** |
+| `feat/<slug>`, `fix/<slug>` | infrastructure outside any series | `development` | squash |
+
+- Branch names are descriptive slugs; tracker codes (e.g. `E1`, `W1.3`) stay out of branch names.
+- Never squash a long-lived branch (`*/dev`, `development`) into its target: squashing leaves
+  the source history behind and every later promotion re-shows old changes and conflicts.
+- Delete an experiment branch after it is merged.
+
+**Current series: `lens-judge`** (integration branch `experiments/lens-judge/dev`, from
+`development`). It is written from scratch and is independent of the earlier
+`experiments/narcbench/*` code: do not import, copy or port code from those branches. Raw
+inputs (NARCBench transcripts, stored activations) may be reused. First experiment:
+`experiments/lens-judge/round4-judge`. An LLM judge reads each agent's J-lens words at the
+final-round prompt end, and an AUROC tests whether its scores separate collusion runs from
+the rest.
 - Experiment outputs go to `results/` (gitignored). Code, configs, and tests are committed;
   large artifacts, datasets, and model weights are not.
