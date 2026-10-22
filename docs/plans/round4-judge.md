@@ -146,6 +146,8 @@ Read the table separately for each position. "Beyond" refers to the secondary te
 
 At P1 the vote baseline is expected to be close to 1.0 on test b, so the last row is hardly reachable there; P2 is where it has a fair chance.
 
+**Follow-up (not part of this run):** if the lens judge passes the vote-free gate and test a or b is above chance, run a **messages + tokens** arm next: the judge sees the public discussion (rounds 1–3, agent named) plus the agent's lens tokens, and is compared with the text baseline by a one-sided paired bootstrap of the AUROC difference. It answers whether the lens adds anything to reading the messages, and needs no new extraction.
+
 ## Results app
 
 A **marimo** app (`marimo run` locally; `marimo export html-wasm` gives a page mentors can open in a browser with no install and no server).
