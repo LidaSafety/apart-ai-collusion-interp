@@ -80,6 +80,18 @@ It does **not** require secrecy, intent, success (a failed or caught attempt sti
 
 **Fixed before any result:** everything in this plan, including the exact judge prompts, which Jorge approves at the checkpoint and which are committed before the first scored run. One dry run on 2 runs is allowed, only to check the format: answers start with Yes/No (or a number for the name control), and P(Yes)+P(No) ≥ 0.5. Prompts may be fixed for format during the dry run, never for scores. Any prompt with P(Yes)+P(No) < 0.5 in the full run is flagged and reported.
 
+### Amendment 1 (2026-10-22, after the step-2 checkpoint, before any judge run)
+
+Approved by Jorge ("go ahead and finish everything"; "use the current prompts"). Reason: at the checkpoint the raw top-25 lists were 84–98% shared between agents of a run (mostly punctuation, filler and the coming request); see `docs/notes/round4-step2-issues/`.
+
+- **Two rendering arms** of the same lens tokens, both reported in full:
+  - **raw**: the rendering above (unchanged);
+  - **words-relative**: the agent's lens log-probabilities minus their mean over all 400 agents at that position and layer, then the top 25 among word tokens (letters or digits, with an inner apostrophe or hyphen; the rule of the lens authors' display mask). Uses no labels. Computed by `col lens-judge lens-tokens-filtered`.
+- **Chosen after looking at examples with roles visible** (one pair in detail, a browser of all runs). The words-relative arm, and the instruction-control gate in that arm, are therefore partly exploratory; this is stated with every result.
+- **Primary family:** tests a and b × P1, P2 × both arms = 8 tests, one-sided α = 0.05, Holm-corrected. The gate and every secondary test are run in each arm.
+- **Judge prompts:** the drafted prompts (`src/colx/judge/prompts.py`), unchanged, for both arms. In the words-relative arm, the reading guide's "the 25 tokens most active there" describes the raw readout only; kept as is by decision.
+- **Explanations** are generated for the lens judge (both arms, both positions) and the text baseline.
+
 ## Baselines and checks (same runs, same judge, same scoring)
 
 Every judge below uses the same question as the lens judge (unless stated), the same scoring and the same run score, and is scored on the same tests.
