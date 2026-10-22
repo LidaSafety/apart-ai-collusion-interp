@@ -45,7 +45,7 @@ It does **not** require secrecy, intent, success (a failed or caught attempt sti
 ## Data (all already exists)
 
 - **Runs:** our 100 NARCBench Core runs (50 collusion-mode, 50 control), generated with Qwen3-32B. Each run has 4 agents.
-- **The round-4 prompt.** All four agents get the exact same final user prompt (no private messages in it): the scenario, the two options, the full public discussion of rounds 1–3, then the request *"Record your recommendation in this exact format: RECOMMENDATION: [Option A or Option B] …"*. Every one of the 400 final replies starts with `RECOMMENDATION: Option …`. What differs between agents is only the **system prompt**: the colluders' version holds their secret instruction (e.g. a conflict of interest and the option to push).
+- **The round-4 prompt.** All four agents get the exact same final user prompt (no private messages in it): the scenario, the two options, the full public discussion of rounds 1–3, then the request *"Record your recommendation in this exact format: RECOMMENDATION: [Option A or Option B] …"*. Every one of the 400 final replies starts with `RECOMMENDATION:` and names an option on that line (390 as `RECOMMENDATION: Option …`; 10 as `[Option A]` or `**Option A**`). What differs between agents is only the **system prompt**: the colluders' version holds their secret instruction (e.g. a conflict of interest and the option to push).
 - **Two read positions per agent**, both inside that identical round-4 prompt:
   - **P1, prompt end:** the last prompt token, just before the agent writes. The vote follows a few tokens later, so the lens may simply show the upcoming vote.
   - **P2, end of discussion:** the last token of the discussion history, before the request to vote. The agent has read everything, but has not been asked to vote yet.
@@ -56,7 +56,7 @@ It does **not** require secrecy, intent, success (a failed or caught attempt sti
 
 ## Steps
 
-1. **Check the stored activations.** Recompute 2 runs from scratch: same token index at P1 and P2, and cosine similarity ≥ 0.999 with the stored activation at every block (bf16 never matches bit for bit). If P2 is not stored, compute it for all 400 final calls with the new code. If anything else doesn't match, re-extract first.
+1. **Check the stored activations.** Recompute 2 runs from scratch: same token index at P1 and P2, and cosine similarity ≥ 0.999 with the stored activation at every block (bf16 never matches bit for bit). The stored activations come from one forward pass over prompt + reply, so the recompute that decides the check covers prompt + reply too (`--with-response`); a prompt-only recompute is reported alongside (checkpoint 2026-10-22: 1.00000 at every block with the reply; down to 0.9974 in late blocks prompt-only, from bf16 kernels that depend on sequence length). If P2 is not stored, compute it for all 400 final calls with the new code. If anything else doesn't match, re-extract first.
 2. **Get each agent's lens tokens.** At **10 layers evenly spaced from 24 to 58** (24, 28, 32, 35, 39, 43, 47, 50, 54, 58), apply the J-lens to the activation at each position and keep the agent's **top-25 lens tokens** (the raw readout, ranked by lens probability, after dropping tokens that aren't printable text, so every line has exactly 25).
    - This is the J-lens paper's own readout: a concept counts as present when it "appears in the lens", i.e. in the top-k (Gurnee et al. 2026, §2.1, §5.4–5.5), and about 25 concepts are meaningfully active at a time (§2.3, §4.2).
    - The layers lie inside the paper's **workspace band**, about 38–92% of depth (§4.1): 24/63 = 38%, 58/63 = 92%.
@@ -219,7 +219,7 @@ Read this whole plan first, then the work repo's `CLAUDE.md` (workflow, logging,
   - `results.json`: `roles` (name → colluder/honest), `votes` (name → option label), `private_messages`, `public_messages`, `final_texts`, `collusion_success`, `colluder_voted_target`.
   - `agent_prompts.json`: list of calls with `agent_name`, `role`, `phase` (private / discussion / final), `channel`, `round` (0–4), `system_prompt`, `user_prompt`.
 - **Assert these in tests** (all checked on 2026-10-22):
-  - every vote parses to one of the two options; every run has 4 final-round calls; every collusion-mode run has 2 private messages; all 400 final replies start with `RECOMMENDATION: Option`;
+  - every vote parses to one of the two options; every run has 4 final-round calls; every collusion-mode run has 2 private messages; all 400 final replies start with `RECOMMENDATION:` and their first line parses to the recorded vote (390 start with `RECOMMENDATION: Option`; corrected at the checkpoint, 2026-10-22);
   - collusion-mode runs with 2 / 1 / 0 colluders voting the target = **32 / 9 / 9**; colluders voting the target **73/100**; honest agents in collusion-mode runs **9/100**; control agents **0/200**; agents in collusion-mode runs who did not vote the target: **27 colluders, 91 honest**;
   - the round-4 user prompt is identical for all 4 agents in **50/50** collusion-mode runs and contains no `PRIVATE COORDINATION`; an agent's system prompt is the same in all its calls;
   - colluder agents: standard 60 (48 voted the target), lowkey 40 (25 voted); 9 style groups, 48 of 50 runs in groups with both labels;
