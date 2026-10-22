@@ -146,7 +146,7 @@ with `ci.yml` when the workflow changes.
   Conventional Commits (one logical step each, tests in the same commit), merged with a
   **merge commit** so every step stays readable in the history. Do not squash.
 - Commit scopes follow the package area (`narcbench`, `extract`, `jlens`, `judge`,
-  `analysis`, `cli`, `deps`, `results`); omit the scope for repo-wide changes.
+  `analysis`, `app`, `cli`, `deps`, `results`); omit the scope for repo-wide changes.
 
 ### Branches and merges
 
