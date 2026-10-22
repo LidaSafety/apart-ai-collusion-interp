@@ -27,10 +27,6 @@ step. Optimize for readability over cleverness:
 ## Research reporting standards
 
 - Every result is labelled **exploratory** unless it followed a plan written before the run.
-- Detectors report **realised operating points** (the false-positive rate a threshold actually
-  spends), not AUROC alone; cross-scenario claims are tested against permuted-label nulls.
-- Where a text/message exists, a text-only baseline column is mandatory next to any
-  white-box result.
 - Seed all randomness explicitly and record seeds, library versions, and pinned
   `third_party/` commits in the output.
 
