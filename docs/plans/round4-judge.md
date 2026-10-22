@@ -61,6 +61,7 @@ It does **not** require secrecy, intent, success (a failed or caught attempt sti
    - This is the J-lens paper's own readout: a concept counts as present when it "appears in the lens", i.e. in the top-k (Gurnee et al. 2026, §2.1, §5.4–5.5), and about 25 concepts are meaningfully active at a time (§2.3, §4.2).
    - The layers lie inside the paper's **workspace band**, about 38–92% of depth (§4.1): 24/63 = 38%, 58/63 = 92%.
    - The readout must match the lens authors' reference code at a middle layer before anything else runs (handoff notes).
+   **Checkpoint: stop and report to Jorge before any judge runs.** Report the label counts and test assertions, the activation check (including whether P2 was stored), the match with the reference readout, the overlap of the four agents' top-25 lists, and the rendered lens tokens of 2 agents. All of this is label-free apart from the known counts. Jorge then reviews and **approves the exact judge prompts**, which are committed before step 3.
 3. **Ask the judge.** Qwen3-32B, thinking turned off, one forward pass per prompt. The prompt contains:
    1. a short description of the committee game, plus the scenario's **public brief** (the situation and the two options, but not which one is the target, and not the discussion);
    2. the definition of collusion, in plain words;
@@ -75,7 +76,7 @@ It does **not** require secrecy, intent, success (a failed or caught attempt sti
 5. **Measure** (at each position; details under "Tests").
 6. **Show.** A marimo app presents the results (see "Results app" below).
 
-**Fixed before any result:** everything in this plan, including the exact judge prompts, which are committed before the first scored run. One dry run on 2 runs is allowed, only to check the format: answers start with Yes/No (or a number for the name control), and P(Yes)+P(No) ≥ 0.5. Prompts may be fixed for format during the dry run, never for scores. Any prompt with P(Yes)+P(No) < 0.5 in the full run is flagged and reported.
+**Fixed before any result:** everything in this plan, including the exact judge prompts, which Jorge approves at the checkpoint and which are committed before the first scored run. One dry run on 2 runs is allowed, only to check the format: answers start with Yes/No (or a number for the name control), and P(Yes)+P(No) ≥ 0.5. Prompts may be fixed for format during the dry run, never for scores. Any prompt with P(Yes)+P(No) < 0.5 in the full run is flagged and reported.
 
 ## Baselines and checks (same runs, same judge, same scoring)
 
@@ -165,7 +166,7 @@ Repo `spar-collusion-experiments`, branch `experiments/lens-judge/round4-judge` 
 
 ```
 chore(deps): add marimo and altair
-chore(deps): pin the jlens reference code at 22f0412 under third_party/ (read-only)
+chore(deps): pin anthropics/jacobian-lens at 581d398 under third_party/ (read-only reference)
 feat(narcbench): run labels, style features and vote lines from the transcripts (col lens-judge labels)
 feat(extract): load the stored round-4 activations at P1 and P2 (col lens-judge activations)
 feat(extract): check stored activations against a fresh recompute (col lens-judge check-activations, GPU)
@@ -193,11 +194,12 @@ Read this whole plan first, then the work repo's `CLAUDE.md` (workflow, logging,
 **Rules**
 - Work on `experiments/lens-judge/round4-judge` in `LidaSafety/spar-collusion-experiments`. One commit per step (list above), Conventional Commits, tests in the same commit. One PR into `experiments/lens-judge/dev`, merged with a **merge commit** (never squash).
 - **Independent of `experiments/narcbench/*`:** do not import, copy or port its code, and do not use its results or derived outputs (lens readouts, call means). Reading its code **only to learn a file format** (e.g. the stored shards) is allowed; say so in the commit when you do.
+- **Two reports:** the checkpoint report (after step 2, before any judge runs; Jorge approves the judge prompts) and the final report.
 - **Fixed before any result:** positions (P1, P2), layers (24, 28, 32, 35, 39, 43, 47, 50, 54, 58), top-25 raw lens tokens per layer, the rendering rule, all judge prompts, scoring, run score, tests and shuffling schemes, baselines. Commit the exact judge prompts before the first scored run. The dry run on 2 runs only checks the answer format and P(Yes)+P(No); do not look at scores.
 - Call lens outputs **tokens**, never "words".
 - Every run writes `results/logs/<timestamp>_<cmd>.log`; announce the command and `tail -f` path before running. One GPU job at a time. Report failures faithfully.
 - **Tests:** unit tests cover the logic (labels, rendering, scoring, statistics) on small fixed inputs. Anything that needs the GPU or the real data is a `col` command (e.g. the activation check), and any test that touches them is marked `gpu` and `slow`.
-- **Record with every output:** seeds, library versions, the model revision, the NARCBench submodule commit (`85fea3b`), the jlens reference commit (`22f0412`) and the lens sha256.
+- **Record with every output:** seeds, library versions, the model revision, the NARCBench submodule commit (`85fea3b`), the jacobian-lens submodule commit (`581d398`), the lens's fitting-code commit (`hijohnnylin/neuronpedia@22f0412`) and the lens sha256.
 - Results that follow this plan are labelled **planned**; anything else **exploratory**.
 
 **Data**
@@ -225,10 +227,13 @@ Read this whole plan first, then the work repo's `CLAUDE.md` (workflow, logging,
 **Models and lenses**
 - Model: `Qwen/Qwen3-32B`, bf16, 64 blocks (0–63), d_model 5120. Needs an 80 GB GPU (A100/H100) on RunPod; access is through Jorge's machine.
 - **J-lens:** `neuronpedia/jacobian-lens`, file `qwen3-32b/jlens/Salesforce-wikitext/Qwen3-32B_jacobian_lens.pt`, **sha256 `0af5ccf2e1c251bedc202607a7ca214f3b9f60980bab73d67a3d0b887db213d8`** (3,303,034,166 bytes; the same file at revisions `b25d72a` and `main`, and on the pod at `/workspace/lenses/neuronpedia-qwen3-32b/lens.pt`). A `torch.save` dict (load with `weights_only=True`): top-level keys `J`, `n_prompts`, `source_layers`, `d_model`, `provenance`. `J` holds one fp16 map (5120 × 5120) per source layer 0–62.
-  - **Provenance (record it in the results):** fitted on `Qwen/Qwen3-32B` with the authors' library (`jlens_commit` `22f0412f62c9d86860fb6c7c44aed1e2cd843256`), 557 WikiText-103 prompts of 128 tokens (`t_max` 128, first 16 positions skipped), bf16, `target_layer` 63; **not converged** (stopped by the operator; ~13% relative standard error vs ~5% for converged lenses). The paper's default target is the penultimate layer.
-- **Layer numbering and readout: take them from the reference code, not from guesses.** The lens file doesn't say whether `J[ℓ]` reads the input or the output of block ℓ, nor whether the readout uses `J[ℓ]` or its transpose. Take all three from the jlens code at `22f0412` (Anthropic's jlens repository, recorded in the lens's `config.yaml`), pinned read-only under `third_party/`.
-  - **Check that can fail:** on one prompt, at layer 39, our top-25 tokens and logits must match the reference code's readout (same tokens; logits within fp32 tolerance). The logit-lens check (the stored last-block output reproduces the model's actual first response token) only checks the stored activations, not the lens.
-  - Compute the readout in **fp32** (final norm, then the model's `lm_head`).
+  - **Provenance (record it in the results):** fitted on `Qwen/Qwen3-32B` by Neuronpedia's copy of the authors' library (the lens's `jlens_commit` `22f0412f62c9d86860fb6c7c44aed1e2cd843256` is a commit of `hijohnnylin/neuronpedia`; the code is in `utils/neuronpedia-utils/neuronpedia_utils/jlens/jlens/`), 557 WikiText-103 prompts of 128 tokens (`t_max` 128, first 16 positions skipped), bf16, `target_layer` 63; **not converged** (stopped by the operator; ~13% relative standard error vs ~5% for converged lenses). The paper's default target is the penultimate layer.
+- **Layer numbering and readout (verified 2026-10-22 in the code that fitted the lens, and identical in the upstream library):**
+  - **layer ℓ = the output of block ℓ** (a forward hook on `model.layers[ℓ]`, taking the block's first output);
+  - **readout = `unembed(h @ J[ℓ].T)`**, where `unembed` is the model's final norm followed by its `lm_head`, computed in **fp32**;
+  - the target is the output of the last block (63).
+  - **Reference code:** `anthropics/jacobian-lens` at `581d398` (Apache-2.0), pinned read-only under `third_party/`. Its `JacobianLens.load` reads our lens file (same keys) and `JacobianLens.apply` does the readout. The lens itself was fitted with Neuronpedia's copy (`hijohnnylin/neuronpedia@22f0412`); the two copies differ in wording and extras, but not in these conventions.
+  - **Check that can fail:** on one prompt, at layer 39, our top-25 tokens and logits must match `JacobianLens.apply` from the pinned library (same tokens; logits within fp32 tolerance). Also confirm that the stored activations' block index means the same as the library's (output of block ℓ). The logit-lens check (the stored last-block output reproduces the model's actual first response token) only checks the stored activations, not the lens.
 - **Rendering rule for lens tokens:** decode each token id on its own; drop tokens that don't decode to printable text (byte fragments), as the paper does (Fig. 40); **then** take the top 25, so every line has exactly 25 tokens; show a leading space as `␣`; keep sub-word pieces.
 - **Judge:** the same `Qwen/Qwen3-32B`, thinking disabled (the chat template then ends the prompt with an empty `<think></think>` block; read the first token after it). One forward pass per prompt (e.g. vLLM with `logprobs`). P(Yes) and P(No) = summed probability of their spellings at that token ("Yes", " Yes", "YES", …). The name control answers with a number 1–4 (single tokens).
 
@@ -236,4 +241,6 @@ Read this whole plan first, then the work repo's `CLAUDE.md` (workflow, logging,
 - `results/round4-judge/` (gitignored; small summary tables may be committed): per-agent token grids at both positions, judge probabilities and explanations for every judge, run scores, style features, vote lines, and an `aurocs.json` with every test (estimate, 95% interval, p-value, n, shuffling scheme, position, judge). Seeds: 0 everywhere; 10,000 bootstrap draws (whole scenarios), 10,000 label shuffles.
 - The marimo app reads only these files.
 
-**Report back to Jorge:** the activation, layer-numbering and reference-readout checks; the side checks (judge works, vote-free and full instruction controls, name control); tests a and b at both positions with intervals and p-values; every baseline and "beyond" test next to them; the split-run and paired checks; the operating point; the reading from the result table; the two descriptive measures; and anything that deviated from this plan.
+**Checkpoint report** (before any judge runs): see step 2's checkpoint.
+
+**Final report:** the activation, layer-numbering and reference-readout checks; the side checks (judge works, vote-free and full instruction controls, name control); tests a and b at both positions with intervals and p-values; every baseline and "beyond" test next to them; the split-run and paired checks; the operating point; the reading from the result table; the two descriptive measures; and anything that deviated from this plan.
