@@ -140,9 +140,12 @@ def judge(
     dry_run: Annotated[
         bool, typer.Option(help="2 runs, format checks only (no scores shown).")
     ] = False,
+    explain_only: Annotated[
+        bool, typer.Option(help="Reuse saved scores; (re)generate explanations only.")
+    ] = False,
 ) -> None:
     """Score every judge prompt (lens judge, controls, baselines) with Qwen3-32B (GPU)."""
-    checks = run_judges(model, out_dir, core_dir, dry_run, log=console.print)
+    checks = run_judges(model, out_dir, core_dir, dry_run, explain_only, log=console.print)
     _print_counts("Answer-format checks", checks)
 
 

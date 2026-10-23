@@ -23,7 +23,7 @@ from colx.judge.scoring import (
 )
 
 MAX_BATCH_TOKENS = 24_000
-GEN_BATCH = 16
+MAX_GEN_TOKENS = 24_000  # prompt + generated tokens per generation batch
 GEN_TOKENS = 120
 EXPLAIN = ("lens", "text")
 DRY_RUNS = ["deception__audit_01__collusion", "deception__audit_01__control"]
@@ -56,22 +56,41 @@ def score_table(model, tokenizer, table: pd.DataFrame, log=print) -> pd.DataFram
     return pd.concat([table.drop(columns=["prompt"]).reset_index(drop=True), scores], axis=1)
 
 
-def explain_table(model, tokenizer, table: pd.DataFrame, log=print) -> pd.DataFrame:
-    """Greedy explanations for the lens judge and the text baseline."""
+def explain_table(
+    model, tokenizer, table: pd.DataFrame, checkpoint: Path, log=print
+) -> pd.DataFrame:
+    """Greedy explanations for the lens judge and the text baseline, resumable.
+
+    Batches are sized by tokens (prompt + generated), like scoring, so the longest prompts
+    don't run out of memory; finished answers are saved to `checkpoint` every 5 batches
+    and reused on restart.
+    """
     sub = table[table["judge"].isin(EXPLAIN)].reset_index(drop=True)
     texts, lengths = _render(tokenizer, sub)
-    order = sorted(range(len(texts)), key=lambda i: lengths[i])
-    answers: list[str] = [""] * len(texts)
+    answers = _load_checkpoint(checkpoint, len(texts))
+    todo = [i for i in range(len(texts)) if answers[i] is None]
+    sized = [lengths[i] + GEN_TOKENS for i in todo]
+    batches = [[todo[j] for j in b] for b in length_batches(sized, MAX_GEN_TOKENS)]
     start = time.time()
-    for k in range(0, len(order), GEN_BATCH):
-        chunk = order[k : k + GEN_BATCH]
-        for i, text in zip(
-            chunk, generate(model, tokenizer, [texts[i] for i in chunk], GEN_TOKENS), strict=True
-        ):
+    for n, batch in enumerate(batches):
+        outs = generate(model, tokenizer, [texts[i] for i in batch], GEN_TOKENS)
+        for i, text in zip(batch, outs, strict=True):
             answers[i] = text.strip()
-        if (k // GEN_BATCH) % 10 == 0:
-            log(f"explained {k + len(chunk)}/{len(order)} ({time.time() - start:.0f}s)")
+        if n % 5 == 4 or n == len(batches) - 1:
+            pd.DataFrame({"explanation": answers}).to_parquet(checkpoint, index=False)
+            done = sum(a is not None for a in answers)
+            log(f"explained {done}/{len(texts)} ({time.time() - start:.0f}s)")
     return sub.drop(columns=["prompt"]).assign(explanation=answers)
+
+
+def _load_checkpoint(checkpoint: Path, n: int) -> list[str | None]:
+    """Answers saved by an earlier, interrupted run (None where missing)."""
+    if not checkpoint.exists():
+        return [None] * n
+    saved = pd.read_parquet(checkpoint)["explanation"]
+    if len(saved) != n:
+        return [None] * n
+    return [None if pd.isna(a) else a for a in saved]
 
 
 def format_check(scores: pd.DataFrame) -> dict[str, object]:
@@ -92,22 +111,36 @@ def format_check(scores: pd.DataFrame) -> dict[str, object]:
     }  # fmt: skip
 
 
-def run_judges(model_path: str, out_dir: Path, core_dir: Path, dry_run: bool, log=print) -> dict:
-    """Build prompts, score them, explain (full run only), save with provenance."""
+def run_judges(
+    model_path: str,
+    out_dir: Path,
+    core_dir: Path,
+    dry_run: bool,
+    explain_only: bool = False,
+    log=print,
+) -> dict:
+    """Build prompts, score them, explain (full run only), save with provenance.
+
+    `explain_only` reuses the saved prompts and scores and only (re)generates explanations.
+    """
     folder = out_dir / ("judge-dryrun" if dry_run else "judge")
     folder.mkdir(parents=True, exist_ok=True)
-    table = build_prompts(out_dir, core_dir, DRY_RUNS if dry_run else None)
-    table.to_parquet(folder / "prompts.parquet", index=False)
-    log(f"{len(table)} prompts")
     tokenizer, model = qwen.load_tokenizer(model_path), qwen.load_model(model_path)
     tokenizer.padding_side = "left"
-    scores = score_table(model, tokenizer, table, log)
     meta = provenance.collect("col lens-judge judge", dry_run=dry_run, model_path=model_path)
-    scores.to_parquet(folder / "scores.parquet", index=False)
-    provenance.write_meta(folder / "scores.parquet", meta)
-    checks = format_check(scores)
+    if explain_only:
+        table = pd.read_parquet(folder / "prompts.parquet")
+        scores = pd.read_parquet(folder / "scores.parquet")
+    else:
+        table = build_prompts(out_dir, core_dir, DRY_RUNS if dry_run else None)
+        table.to_parquet(folder / "prompts.parquet", index=False)
+        log(f"{len(table)} prompts")
+        scores = score_table(model, tokenizer, table, log)
+        scores.to_parquet(folder / "scores.parquet", index=False)
+        provenance.write_meta(folder / "scores.parquet", meta)
     if not dry_run:
-        explained = explain_table(model, tokenizer, table, log)
+        checkpoint = folder / "explanations.partial.parquet"
+        explained = explain_table(model, tokenizer, table, checkpoint, log)
         explained.to_parquet(folder / "explanations.parquet", index=False)
         provenance.write_meta(folder / "explanations.parquet", meta)
-    return checks
+    return format_check(scores)

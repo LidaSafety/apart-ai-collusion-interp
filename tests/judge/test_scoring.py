@@ -99,3 +99,13 @@ def test_batched_left_padded_scoring_matches_single_prompts() -> None:
     for i, p in enumerate(prompts):
         single = last_logits_ids(model, p[None], torch.ones(1, len(p), dtype=torch.long))
         torch.testing.assert_close(batched[i], single[0], atol=1e-5, rtol=1e-5)
+
+
+def test_explanation_checkpoint_resume(tmp_path) -> None:
+    from colx.judge.run import _load_checkpoint
+
+    path = tmp_path / "partial.parquet"
+    assert _load_checkpoint(path, 3) == [None, None, None]
+    pd.DataFrame({"explanation": ["Yes. a", None, "No. c"]}).to_parquet(path)
+    assert _load_checkpoint(path, 3) == ["Yes. a", None, "No. c"]
+    assert _load_checkpoint(path, 4) == [None] * 4  # a different prompt set starts fresh
