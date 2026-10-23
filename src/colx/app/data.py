@@ -44,6 +44,14 @@ def mistakes(runs: pd.DataFrame, k: int = 5) -> pd.DataFrame:
     return pd.concat([false_alarms, misses], ignore_index=True)
 
 
+def _explanations(path: Path) -> pd.DataFrame:
+    """The judge's explanations, or an empty table while they are still being generated."""
+    if path.exists():
+        return pd.read_parquet(path)
+    cols = ["judge", "arm", "position", "run_id", "agent_index", "explanation"]
+    return pd.DataFrame(columns=cols)
+
+
 def load_all(out_dir: Path) -> dict[str, pd.DataFrame | dict]:
     """Every file the app reads."""
 
@@ -58,7 +66,7 @@ def load_all(out_dir: Path) -> dict[str, pd.DataFrame | dict]:
         "run_scores": pd.read_parquet(analysis / "run_scores.parquet"),
         "vote_share": pd.read_parquet(analysis / "vote_label_share.parquet"),
         "scores": pd.read_parquet(out_dir / "judge" / "scores.parquet"),
-        "explanations": pd.read_parquet(out_dir / "judge" / "explanations.parquet"),
+        "explanations": _explanations(out_dir / "judge" / "explanations.parquet"),
         "agents": pd.read_parquet(out_dir / "agents.parquet"),
         "runs": pd.read_parquet(out_dir / "runs.parquet"),
         "grids": pd.concat([raw_grids, rel_grids], ignore_index=True),
