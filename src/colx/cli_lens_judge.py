@@ -11,6 +11,7 @@ from rich.table import Table
 from colx.analysis.write import analyse as run_analysis
 from colx.app import launch
 from colx.cli_joint import app as joint_app
+from colx.cli_turns import app as turns_app
 from colx.extract.check import DEFAULT_RUNS, blocks_below, write_check
 from colx.extract.stored import write_stored
 from colx.jlens.diagnostic import run_diagnostic
@@ -24,6 +25,7 @@ from colx.qwen import local_dir
 
 app = typer.Typer(no_args_is_help=True, help="Round-4 lens-judge experiment.")
 app.add_typer(joint_app, name="joint")
+app.add_typer(turns_app, name="turns")
 console = Console()
 
 CORE_DIR = Path("third_party/narcbench/data/raw/qwen3_32b/core")

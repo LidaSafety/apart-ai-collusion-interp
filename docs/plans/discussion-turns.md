@@ -1,6 +1,6 @@
 # Plan: do the colluders' own discussion turns show who will follow through?
 
-2026-10-24 · Jorge (draft by Claude) · Next-steps §2 ([`next-steps.md`](next-steps.md)), after the [joint-judge results](../results/joint-judge/README.md). **Draft, for approval. Nothing has run.**
+2026-10-24 · Jorge (draft by Claude) · Next-steps §2 ([`next-steps.md`](next-steps.md)), after the [joint-judge results](../results/joint-judge/README.md). **Approved by Jorge 2026-10-24 ("run it"), before any readout or test.**
 
 ## Why
 
