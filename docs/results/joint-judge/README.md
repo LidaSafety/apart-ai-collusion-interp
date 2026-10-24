@@ -93,9 +93,32 @@ The one "better" result is not a gain. Round 4's words-relative P2 judge was *re
 - **The lens currently distracts a judge that reads the discussion.** Adding 1,000 lens tokens lowers its AUROC on both tests.
 - **Raw tokens remain unreadable** to the judge, even side by side. Raw P1 is below chance on test a (0.37).
 
+## Follow-up A (exploratory): does one pair stand out?
+
+Specified in the plan before computing (`aaffcc4`). No GPU; reuses the saved outputs and round 4's token tables. Command: `col lens-judge joint pair-scores`. Log: `results/logs/2026-10-24T23-10_joint-pair-scores.log`.
+
+- **Judge agreement:** how many of the 4 words-relative lens judges (grid and pooled, P1 and P2) name the same pair.
+- **Token overlap, no LLM:** the (layer, token) entries exactly two agents share and the other two don't. Run score = the largest pair's count minus the median over the 6 pairs.
+
+| Instrument | a | b | b beyond style (p) | Pair found (of 50) | colluded / not | Colluded run above its control |
+|---|---|---|---|---|---|---|
+| Judge agreement | 0.62 [0.51, 0.73] | 0.48 [0.33, 0.64] | 0.67 | 26 | 17/32 · 9/18 | 18 of 23 |
+| Overlap, words-rel P1 | **0.86 [0.80, 0.92]** | 0.49 [0.32, 0.67] | 0.82 | 27 | 17/32 · 10/18 | **32 of 32** |
+| Overlap, words-rel P2 | **0.88 [0.81, 0.94]** | 0.58 [0.41, 0.75] | 0.31 | 20 | 11/32 · 9/18 | **32 of 32** |
+| Overlap, raw P1 | **0.88 [0.82, 0.94]** | 0.57 [0.39, 0.75] | 0.43 | 21 | 12/32 · 9/18 | **32 of 32** |
+| Overlap, raw P2 | **0.91 [0.85, 0.96]** | 0.66 [0.48, 0.83], p = 0.03 | 0.16 | 21 | 12/32 · 9/18 | **31 of 32** |
+
+- **A label-free, LLM-free score finds the collusion-mode runs.** Mean words-relative P1 score: 100 in collusion-mode runs (colluded or not) against 24 in controls. Test a is near the ceiling for a pure instruction detector (about 0.87, or a bit above where follow-through helps). Computed **after** seeing these numbers, so post hoc: collusion mode vs control gives an AUROC of **0.98–0.99** for all four overlap instruments. That matches round 4's *supervised* token classifier (0.99), and it holds for the raw tokens too. On the run score, the overlap beats the LLM judge reading the same tokens by a wide margin.
+- **It still reads the instruction, not the act.**
+  - Test b is at chance for three of the four overlap instruments.
+  - The raw P2 hint (0.66, p = 0.03 uncorrected) loses most of its support within style groups (p = 0.16).
+  - The pair it finds is found as often in runs that didn't collude.
+- **The likely mechanism:** the two colluders carry the same hidden instruction in their system prompts, so their activations share content the other two don't. That makes the score a "two agents share hidden context" detector. That is useful for monitoring, but it doesn't show the agents act on that context.
+- **Judge agreement is weak** (a 0.62). Asking several judges doesn't recover what the plain token count shows.
+
 ## Suggested next steps
 
-1. **Exploratory, no GPU:** score runs by *how distinct the named pair is* rather than by the rating. For example, take the probability mass on the named pair's agent numbers, or an agreement score across arms. Test whether that separates collusion-mode from control runs (test a) on the existing outputs, and label it exploratory.
+1. **Done as follow-up A** (above): the token-overlap score finds collusion-mode runs at 0.98–0.99 with no LLM, but not follow-through.
 2. **Next-steps §2 (better read positions)** is now the main lever for follow-through. Read the colluders' own discussion turns, where the decision forms, and a prefilled content token.
 3. **Keep the discussion arm as the bar** that any lens arm has to beat, and present the lens to that judge as a short pooled list, not a full grid.
 
