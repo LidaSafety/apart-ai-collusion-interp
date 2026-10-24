@@ -29,7 +29,7 @@ EXPLAIN = ("lens", "text")
 DRY_RUNS = ["deception__audit_01__collusion", "deception__audit_01__control"]
 
 
-def _render(tokenizer, table: pd.DataFrame) -> tuple[list[str], list[int]]:
+def render_prompts(tokenizer, table: pd.DataFrame) -> tuple[list[str], list[int]]:
     """Chat-rendered prompts (one user turn, thinking off) and their token lengths."""
     texts = [qwen.render_chat(tokenizer, None, p) for p in table["prompt"]]
     lengths = [len(ids) for ids in tokenizer(texts, add_special_tokens=False)["input_ids"]]
@@ -38,7 +38,7 @@ def _render(tokenizer, table: pd.DataFrame) -> tuple[list[str], list[int]]:
 
 def score_table(model, tokenizer, table: pd.DataFrame, log=print) -> pd.DataFrame:
     """Forward-pass every prompt; return one score row per prompt (same order)."""
-    texts, lengths = _render(tokenizer, table)
+    texts, lengths = render_prompts(tokenizer, table)
     ids = answer_token_ids(tokenizer)
     records: list[dict | None] = [None] * len(texts)
     batches, start = length_batches(lengths, MAX_BATCH_TOKENS), time.time()
@@ -57,16 +57,16 @@ def score_table(model, tokenizer, table: pd.DataFrame, log=print) -> pd.DataFram
 
 
 def explain_table(
-    model, tokenizer, table: pd.DataFrame, checkpoint: Path, log=print
+    model, tokenizer, table: pd.DataFrame, checkpoint: Path, log=print, judges=EXPLAIN
 ) -> pd.DataFrame:
-    """Greedy explanations for the lens judge and the text baseline, resumable.
+    """Greedy explanations for `judges` (the lens judge and text baseline), resumable.
 
     Batches are sized by tokens (prompt + generated), like scoring, so the longest prompts
     don't run out of memory; finished answers are saved to `checkpoint` every 5 batches
     and reused on restart.
     """
-    sub = table[table["judge"].isin(EXPLAIN)].reset_index(drop=True)
-    texts, lengths = _render(tokenizer, sub)
+    sub = table[table["judge"].isin(judges)].reset_index(drop=True)
+    texts, lengths = render_prompts(tokenizer, sub)
     answers = _load_checkpoint(checkpoint, len(texts))
     todo = [i for i in range(len(texts)) if answers[i] is None]
     sized = [lengths[i] + GEN_TOKENS for i in todo]
