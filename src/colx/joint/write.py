@@ -36,17 +36,27 @@ def round4_runs(round4_dir: Path) -> dict[tuple, pd.DataFrame]:
 
 
 def comparisons(joint: dict, r4: dict, n_boot: int) -> list[dict]:
-    """The plan's paired comparisons (x minus y, AUROC difference)."""
+    """The plan's paired comparisons (x minus y, AUROC difference), amendment 1.
+
+    - both - discussion: does the lens add to the discussion?
+    - joint - round 4, same rendering and position: does judging jointly help?
+    - pooled - rel: does shortening the lists to 25 help?
+    - primary arms - round 4's baselines on b; joint discussion - round 4's text judge.
+    """
     disc = joint[("discussion", "-")]
     pairs = [("discussion", disc, "round4_text", r4[("text", "-", "-")], ("a", "b"))]
     for pos in ("P1", "P2"):
-        lens, both = joint[("lens", pos)], joint[("both", pos)]
-        pairs.append((f"both_{pos}", both, "discussion", disc, ("a", "b")))
-        pairs.append(
-            (f"lens_{pos}", lens, f"round4_rel_{pos}", r4[("lens", "rel", pos)], ("a", "b"))
-        )
+        rel, both = joint[("lens_rel", pos)], joint[("both", pos)]
+        pairs += [
+            (f"both_{pos}", both, "discussion", disc, ("a", "b")),
+            (f"lens_rel_{pos}", rel, f"round4_rel_{pos}", r4[("lens", "rel", pos)], ("a", "b")),
+            (f"lens_raw_{pos}", joint[("lens_raw", pos)], f"round4_raw_{pos}",
+             r4[("lens", "raw", pos)], ("a", "b")),
+            (f"lens_pooled_{pos}", joint[("lens_pooled", pos)], f"lens_rel_{pos}", rel,
+             ("a", "b")),
+        ]  # fmt: skip
         for base in ROUND4_BASELINES:
-            for name, x in ((f"lens_{pos}", lens), (f"both_{pos}", both)):
+            for name, x in ((f"lens_rel_{pos}", rel), (f"both_{pos}", both)):
                 pairs.append((name, x, f"round4_{base}", r4[(base, "-", "-")], ("b",)))
     return [
         {"x": xn, "y": yn} | compare(x, y, test, n_boot)
@@ -56,11 +66,11 @@ def comparisons(joint: dict, r4: dict, n_boot: int) -> list[dict]:
 
 
 def primary_family(tests: list[dict], diffs: list[dict]) -> list[dict]:
-    """Lens a and b at P1/P2, and both - discussion on b at P1/P2: Holm over 6 tests."""
+    """lens_rel a and b at P1/P2, and both - discussion on b at P1/P2: Holm over 6 tests."""
     rows = {
-        f"lens_{t['position']}_{t['test']}": t
+        f"lens_rel_{t['position']}_{t['test']}": t
         for t in tests
-        if t["arm"] == "lens" and t["test"] in ("a", "b")
+        if t["arm"] == "lens_rel" and t["test"] in ("a", "b")
     }
     rows |= {
         f"{d['x']}_minus_discussion_b": d
