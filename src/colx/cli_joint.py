@@ -3,11 +3,13 @@
 from pathlib import Path
 from typing import Annotated
 
+import pandas as pd
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from colx.joint.run import run_joint, write_inputs
+from colx.joint.write import analyse as run_analysis
 from colx.provenance import MODEL_ID
 
 app = typer.Typer(no_args_is_help=True, help="Joint judge: all four agents in one prompt.")
@@ -59,3 +61,16 @@ def judge(
     """Score every joint prompt (0-9 rating) and generate the named pair (GPU)."""
     checks = run_joint(model, round4_dir, out_dir, dry_run, log=console.print)
     _print_counts("Answer-format checks", checks)
+
+
+@app.command()
+def analyse(
+    out_dir: OutDir = OUT_DIR,
+    round4_dir: Round4Dir = ROUND4_DIR,
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """AUROCs, paired comparisons, pair identification and the primary family."""
+    summary = run_analysis(out_dir, round4_dir, n_boot, n_perm, log=console.print)
+    console.print(pd.DataFrame(summary["primary"]).round(3).to_string(index=False))
+    console.print(pd.DataFrame(summary["pair_found"]).round(3).to_string(index=False))
