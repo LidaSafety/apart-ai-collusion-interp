@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from colx.joint.pairs_write import analyse_pairs
 from colx.joint.run import run_joint, write_inputs
 from colx.joint.write import analyse as run_analysis
 from colx.provenance import MODEL_ID
@@ -74,3 +75,18 @@ def analyse(
     summary = run_analysis(out_dir, round4_dir, n_boot, n_perm, log=console.print)
     console.print(pd.DataFrame(summary["primary"]).round(3).to_string(index=False))
     console.print(pd.DataFrame(summary["pair_found"]).round(3).to_string(index=False))
+
+
+@app.command("pair-scores")
+def pair_scores(
+    out_dir: OutDir = OUT_DIR,
+    round4_dir: Round4Dir = ROUND4_DIR,
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """Exploratory: judge-agreement and token-overlap pair scores, with their tests."""
+    records = pd.DataFrame(analyse_pairs(out_dir, round4_dir, n_boot, n_perm, log=console.print))
+    aurocs = records[records.test.isin(["a", "b"])]
+    console.print(aurocs.pivot(index="instrument", columns="test", values="auroc").round(3))
+    found = records[records.test == "pair_found"]
+    console.print(found.pivot(index="instrument", columns="group", values="found"))
