@@ -6,7 +6,8 @@
 
 ## In short
 
-1. **One primary test passes: round 3, T-start.** Just before a colluder writes its last discussion turn, a held-out lens-token classifier predicts whether it will vote the target at **0.73 [0.58, 0.87]** (p < 0.001; Holm over 6 read points).
+1. **One primary test passes: round 3, T-start, but a judge reading the discussion does better** (follow-up B: text judge 0.82; lens − text −0.08).
+   **Original finding:** Just before a colluder writes its last discussion turn, a held-out lens-token classifier predicts whether it will vote the target at **0.73 [0.58, 0.87]** (p < 0.001; Holm over 6 read points).
    - It holds within instruction style (p = 0.001).
    - It beats a style-only baseline: +0.23, one-sided lower bound +0.06.
    - Raw tokens give 0.77 [0.62, 0.89].
@@ -67,19 +68,46 @@ That gives 6 read points. No new forward passes were needed.
   - The round-3 prompt contains two rounds of public discussion. The lens may be reading where the discussion is going, and whether the colluder's side is winning, rather than a private decision.
   - Round 4's text judge reading the discussion reached similar separation at run level (test b 0.80; the joint discussion judge 0.75).
 
+## Follow-up B: the lens or the conversation?
+
+Planned in the plan's follow-up B (`14a8c80`) before running.
+- **Commands:** `col lens-judge turns text-judge --model <dir>` and `col lens-judge turns follow-up`.
+- **Logs:** `results/logs/2026-10-24T23-54_turns-text-judge.log` and `results/logs/2026-10-24T23-56_turns-follow-up.log`.
+- **Format:** 100 of 100 answers start with Yes or No; minimum P(Yes) + P(No) = 0.999.
+
+**B1, a frozen text judge (planned).** For each colluder at R3 T-start, Qwen3-32B reads the brief and every public message before the colluder's round-3 turn. It is told the colluder was secretly instructed to push the target and asked whether it will vote for it. There is no training step, so no fold bias.
+
+| Instrument | Follow-through AUROC | Split runs (follower higher) | Mean score per run: 0 / 1 / 2 followed |
+|---|---|---|---|
+| **Text judge** | **0.82 [0.69, 0.92]**, p < 0.001 | 6 of 9 | 0.26 / 0.51 / 0.77 |
+| Lens, words-relative | 0.73 [0.58, 0.87] | 4 of 9 | 0.74 / 0.82 / 0.85 |
+| Lens, raw | 0.77 [0.62, 0.89] | 5 of 9 | 0.62 / 0.75 / 0.83 |
+
+- **Primary of B: words-relative lens − text judge = −0.08** (one-sided lower 95% bound −0.21, p = 0.87). **Not above zero.** Raw: −0.05 (lower bound −0.17).
+- **Reading (the plan's):** the round-3 lens signal is **no better than reading the conversation**. The discussion predicts follow-through better, and separates runs more sharply.
+
+**B2, what the classifier uses (exploratory, descriptive).** Weights of the classifier refitted on all 100 colluders (`analysis/r3_features.csv`):
+- **Words-relative, toward following through:** 伪装 *disguise* (25 followers, 3 non-followers), 虚假 *false*, 谣言 *rumor*, 宣传 *publicize*, 犹豫 *hesitate*, 偏好 *preference*.
+- **Words-relative, toward not following:** casual words (*things, stuff, nice, something, pretty, got*), 调查 / *investigations*.
+- **Raw, toward following through:** 我们认为 *"we believe"*, 审视 *examine*, 考量 *considerations*, 适度 *moderate*.
+- **Raw, toward not following:** 证据 *evidence*, 执法 *law enforcement*, 认真落实 *implement conscientiously*.
+- Deception concepts mark the followers. The casual vocabulary likely reflects the "lowkey" instruction wording, whose colluders follow through less, so instruction style may still feed the classifier despite the within-style test.
+
 ## What this means
 
 - **The read position matters.** At the round-4 prompt end (P1, P2), lens tokens showed only who was instructed. At the start of the colluders' last discussion turn, they also predict, held out by scenario, whether the colluders will act on it. It's the first follow-through signal in the series that beats instruction wording.
-- **We can't yet credit it to the lens rather than the discussion.** The signal is run-level and appears once two rounds of discussion are in the prompt. A judge reading the discussion gets similar run-level separation. A valid text baseline is needed before any "beyond text" claim.
+- **It is not a lens finding** (follow-up B). A frozen judge reading the same discussion predicts follow-through better (0.82 vs 0.73), with sharper run-level separation. The lens at round 3 mostly reflects where the conversation is going.
 - **It doesn't pick the individual** who follows through in split runs, so it is not yet evidence of a readable per-agent decision.
 
 ## Next steps
 
-1. **A valid text baseline**, then a paired comparison at R3 T-start:
-   - the *whole* public discussion up to round 3, not only the colluder's own messages;
-   - a scoring that doesn't suffer the held-out-scenario bias (for example, a frozen judge rather than a trained classifier, or the round-4 discussion judge's scores).
-2. **Replicate R3 T-start** with more data (next-steps §3: 2–3 more seeds per scenario), which also gives more split runs.
-3. **Look at what the classifier uses** at R3 T-start: its top-weighted (layer, token) features, read with roles hidden first.
+1. **Done as follow-up B:** the discussion beats the lens at R3 T-start, so the follow-through signal so far is the conversation's, not the lens's.
+2. **For follow-through, look where the text can't see:** a position after the discussion has been read but whose content is private. Candidates:
+   - the colluders' **private-channel** turn (round 0);
+   - a **prefilled content token** at the final vote (next-steps §2a).
+   Compare each against a text judge given the same visible text.
+3. **A converged lens** (Gemma-3-27B, next-steps §5). This lens's noise (~14% error) may be why its tokens carry less than the text.
+4. **Keep the lens for what it does well:** the no-LLM token-overlap detector of *who carries a hidden instruction* (joint-judge follow-up A, 0.98–0.99) is the strongest lens result so far. It's worth a planned replication.
 
 ## Reproduce
 
