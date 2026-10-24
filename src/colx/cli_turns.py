@@ -9,7 +9,10 @@ from rich.console import Console
 
 from colx.provenance import LENS_PATH
 from colx.turns.run import write_tokens
+from colx.turns.textjudge import run_text_judge
 from colx.turns.write import analyse as run_analysis
+from colx.turns.write import follow_up as run_follow_up
+from colx.turns.write import load_inputs
 
 app = typer.Typer(no_args_is_help=True, help="Discussion turns: does follow-through show early?")
 console = Console()
@@ -46,3 +49,31 @@ def analyse(
     """Classifiers, baselines, split runs and overlap at the 6 read points; primary family."""
     family = run_analysis(out_dir, round4_dir, core_dir, n_boot, n_perm, log=console.print)
     console.print(pd.DataFrame(family).round(3).to_string(index=False))
+
+
+@app.command("text-judge")
+def text_judge(
+    model: Annotated[str, typer.Option(help="Qwen3-32B: Hub id or local folder.")],
+    out_dir: OutDir = OUT_DIR,
+    round4_dir: Annotated[Path, typer.Option(help="Round-4 labels.")] = ROUND4_DIR,
+    core_dir: Annotated[Path, typer.Option(help="NARCBench Core transcripts.")] = CORE_DIR,
+    dry_run: Annotated[bool, typer.Option(help="2 colluders, format checks only.")] = False,
+) -> None:
+    """Follow-up B1: a frozen text judge at round 3 for every colluder (GPU)."""
+    _, colluders, runs, _, messages = load_inputs(out_dir, round4_dir, core_dir)
+    checks = run_text_judge(model, colluders, runs, messages, out_dir, dry_run, console.print)
+    console.print(checks)
+
+
+@app.command("follow-up")
+def follow_up(
+    out_dir: OutDir = OUT_DIR,
+    round4_dir: Annotated[Path, typer.Option(help="Round-4 labels.")] = ROUND4_DIR,
+    core_dir: Annotated[Path, typer.Option(help="NARCBench Core transcripts.")] = CORE_DIR,
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """Follow-up B: lens vs text judge at R3 T-start, and the classifier's top features."""
+    records, features = run_follow_up(out_dir, round4_dir, core_dir, n_boot, n_perm)
+    console.print(pd.DataFrame(records).round(3).to_string(index=False))
+    console.print(features.to_string(index=False))
