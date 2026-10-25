@@ -1,5 +1,7 @@
 # Who Shares a Secret? A Label-Free Activation Monitor for Hidden Coalitions of LLM Agents
 
+> The LaTeX version in `latex/report.tex` (built as `latex/report.pdf`) is the submission; this Markdown draft is kept for reference.
+
 *Draft for the Apart Research AI Collusion Research Sprint (Oct 23–25, 2026). Track 2: Detection and Audit of Collusion, with a Track 3 stress test (coalitions that know they are watched).*
 
 *Authors: [team, to be completed] · SPAR Fall 2026 · Code: https://github.com/LidaSafety/apart-ai-collusion-interp*
