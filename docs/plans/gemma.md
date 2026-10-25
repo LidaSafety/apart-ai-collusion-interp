@@ -91,3 +91,14 @@ By Jorge ("I want to judge with gemma first"):
 - **Test 4's text judge is Gemma-3-27B-IT** (the same model that generated the transcripts). It uses the same prompt, question and score B as follow-up B on Qwen. Gemma is rendered with its own chat template; the prompt is one user turn.
 - **Qwen3-32B as the judge is a later, secondary check.** It holds the judge fixed across the two models.
 - **Caveat:** test 4 now compares the lens with a judge that differs from the Qwen experiment's, and that judges its own model's transcripts. A cross-model difference in "lens − text" is then partly a judge difference.
+
+## Amendment 2 (2026-10-25, after generation, before any extraction or lens readout)
+
+Gate 1 failed on one criterion only: 9 of 400 final answers had no vote that NARCBench could parse ("?"). Gemma put its `RECOMMENDATION: Option X` line below a heading or a preamble ("Okay, here's my recommendation…"). Each of the 9 has exactly one such line further down. 6 are colluders and 3 honest agents, all in collusion-mode runs.
+
+Decided by Jorge ("Recover the votes"):
+- **Rule:** when NARCBench recorded "?", the vote is the option on the answer's single `RECOMMENDATION: Option X` line, wherever it appears. It's applied in the label code. No labels are used to decide it; it is only parsing.
+- **On the Qwen data the rule changes nothing:** every Qwen vote parsed.
+- **Gate 1 is then re-checked** with the same minimums.
+
+Other counts at Gate 1, before recovery: 25 runs colluded, 25 collusion-mode runs did not, 42 colluders did not vote the target, no API errors.
