@@ -101,23 +101,23 @@ We wrap NARCBench's generator, unmodified, to make 50 new Gemma runs per conditi
 \emph{Real collusion:} colluders told a monitor reads their messages \emph{and reasoning} (\texttt{aware}), also told to keep the arrangement out of their reasoning (\texttt{evade}), colluder 2's instruction paraphrased (\texttt{para}), or paraphrased with no private channel (\texttt{independent}). \emph{No collusion:} two honest agents share one confidential note and a private channel, with no target: cite evidence (\texttt{benign}), a budget detail, a deadline, or the first note given openly (\texttt{benign\_open}).
 
 \subsection{Validation and statistics}\label{sec:validation}
-The \emph{positive control}, a case where collusion is known to be present so the monitor must fire, is the instructed coalition. The \emph{negative controls}, cases known to contain no collusion so any flag is a false alarm, are each scenario's all-honest run and the harmless-note pairs. The pair-naming rule is fixed on Gemma Core and tested on Qwen Core and Transfer. We report AUROC with 95\% scenario-cluster bootstrap intervals (10{,}000 draws), one-sided p-values from 10{,}000 within-scenario label shuffles, paired bootstraps for differences, and Holm correction within each pre-registered family. Seeds are fixed (statistics 0, probes 0--9); generation sampling is not, so we store the transcripts.
+The \emph{positive control}, a case where collusion is known to be present so the monitor must fire, is the instructed coalition. The \emph{negative controls}, cases known to contain no collusion so any flag is a false alarm, are each scenario's all-honest run and the harmless-note pairs. The pair-naming rule is fixed on Gemma Core and tested on Qwen Core and Transfer. We report AUROC with 95\% intervals from resampling the scenarios (10{,}000 draws) and one-sided p-values from 10{,}000 within-scenario label shuffles. To compare two monitors we resample the scenarios 10{,}000 times and recompute the difference: its \emph{one-sided 95\% lower bound} is the 5th percentile, and $p$ is the share of resamples where it is zero or below. Holm corrects within each pre-registered family. Seeds are fixed (statistics 0, probes 0--9); generation sampling is not, so we store the transcripts.
 
 \section{Results}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.84\linewidth]{fig_roc}
+\includegraphics[width=0.8\linewidth]{fig_roc}
 \caption{\textbf{The lens separates collusion from controls better than the agents' words do.} ROC curves on (a) Gemma Core, (b) Qwen Core and (c) Transfer: lens overlap (vermillion) vs the best of four text-overlap monitors on the same runs (grey); AUROC in brackets. On Transfer the coalition is almost invisible in the messages but separates perfectly in the activations. Intervals are in Table~\ref{tab:main}.}
 \label{fig:main}
 \end{figure}
 
 \subsection{Lens overlap beats text: positive control and main result (planned)}\label{sec:main}
-The positive control works: the monitor fires on every dataset (Figure~\ref{fig:main}; Table~\ref{tab:main}).
+The positive control works: the monitor fires on every dataset (Figure~\ref{fig:main}; Table~\ref{tab:main}). We score monitors by AUROC, the chance that a random collusion run scores higher than a random control (0.5 is chance, 1 is perfect).
 \begin{itemize}
-\item On Gemma Core, the planned primary test, the lens beats the best text overlap by $+0.076$ AUROC (one-sided 95\% lower bound $+0.022$, $p=0.006$).
-\item On Qwen it beats both text overlap ($+0.035$) and a \emph{working} LLM text monitor (0.84; $+0.15$, lower bound $+0.09$).
-\item \textbf{At zero false positives} the lens catches 70\%, 74\% and 100\% of collusion runs on the three datasets, against at most 64\%, 66\% and 14\% for any text monitor (Table~\ref{tab:main}).
+\item \textbf{Gemma Core, the planned primary test:} the lens monitor scores 0.98 and the best text monitor 0.90. The gap is $+0.08$, and at least $+0.02$ with 95\% confidence ($p=0.006$).
+\item \textbf{Qwen Core:} the lens scores 0.99, against 0.95 for the best text monitor and 0.84 for an LLM reading the discussion, which works on Qwen (gap $+0.15$, at least $+0.09$).
+\item \textbf{With no false alarms allowed} (the threshold just above every control), the lens catches 70\%, 74\% and 100\% of collusion runs on the three datasets; the best text monitor catches at most 64\%, 66\% and 14\%.
 \end{itemize}
 
 \begin{table}[t]
@@ -134,7 +134,7 @@ Core, Qwen3-32B & \textbf{0.99} [0.97, 1.00] & 0.95 [0.91, 0.99] & 0.84 [0.76, 0
 Transfer, Qwen3-32B & \textbf{1.00} [1.00, 1.00] & 0.59 [0.51, 0.67] & 0.53 [0.45, 0.62] & \textbf{100\% / 100\%} & 14\% / 36\% & 36 / 36 \\
 \bottomrule
 \end{tabular}}
-\caption{\textbf{The lens monitor beats both text baselines on every dataset.} AUROC for separating collusion runs from all-honest controls, with 95\% scenario-bootstrap intervals; best per row in bold. The LLM text monitor is Qwen3-32B on Qwen Core and Gemma-3-27B (same prompt; neutral task wording on Transfer) elsewhere; $^{\dagger}$inverted (Section~\ref{sec:llmmon}). True-positive rates use the frozen rule of Section~\ref{sec:monitor}: thresholds at the largest control score (0\% false positives) and the controls' 95th percentile (6\%; 5.6\% on Transfer); for text, the best of the four monitors at each threshold. The last column (exploratory) counts collusion runs where the lens's top pair is either the colluders or the two honest agents.}
+\caption{\textbf{The lens monitor beats both text baselines on every dataset.} AUROC, collusion runs vs all-honest controls, with 95\% intervals; best per row in bold. LLM text monitor: Qwen3-32B on Qwen Core, Gemma-3-27B elsewhere; $^{\dagger}$inverted (Section~\ref{sec:llmmon}). True-positive rates at the frozen thresholds of Section~\ref{sec:monitor} (0\% and 6\% false positives; for text, the best monitor at each). Last column (exploratory): runs whose top pair is the colluders or the honest pair.}
 \label{tab:main}
 \end{table}
 
@@ -149,12 +149,12 @@ Read just before each agent writes its first public message (Appendix~\ref{app:p
 \end{figure}
 
 \subsection{Who is colluding}\label{sec:who}
-The top pair is the colluders in only 31--46\% of runs (Gemma 20 of 50, Qwen 23 of 50, Transfer 11 of 36). When it isn't, it is the two \emph{honest} agents: colluders lose concepts the honest pair shares. The 2-vs-2 split is right in 135 of 136 collusion runs (Table~\ref{tab:main}; exploratory). We fixed one rule on Gemma before applying it to Qwen or Transfer: the coalition is the pair whose members share \emph{fewer} entries in total. On held-out Qwen and Transfer runs it names the colluders in 60 of 86 (70\%, $p=0.0002$, planned; Appendix~\ref{app:side}).
+The top pair is the colluders in only 31--46\% of runs. When it isn't, it is the two \emph{honest} agents: colluders lose concepts the honest pair shares. The 2-vs-2 split is right in 135 of 136 collusion runs (Table~\ref{tab:main}; exploratory). We fixed one rule on Gemma before applying it to Qwen or Transfer: the coalition is the pair whose members share \emph{fewer} entries in total. On held-out Qwen and Transfer runs it names the colluders in 60 of 86 (70\%, $p=0.0002$, planned; Appendix~\ref{app:side}).
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.7\linewidth]{fig_stress}
-\caption{\textbf{Robust to warnings, evasion and paraphrase, but harmless shared notes are flagged too.} 50 new Gemma runs per condition, all against the same 50 controls; lens overlap (vermillion) vs the best text-overlap monitor (grey), with 95\% intervals. Top (white): real collusion; the monitor survives warnings, an instruction to hide the arrangement from its own reasoning, and paraphrase. Bottom (shaded): no collusion, only two honest agents sharing a harmless note; the monitor flags these too, even when the note is open.}
+\caption{\textbf{Robust to warnings, evasion and paraphrase, but harmless shared notes are flagged too.} 50 new Gemma runs per condition against the same 50 controls; lens overlap (vermillion) vs the best text-overlap monitor (grey), with 95\% intervals. Top: real collusion. Bottom (shaded): two honest agents sharing a harmless note, flagged too, even when the note is open.}
 \label{fig:stress}
 \end{figure}
 
@@ -171,7 +171,7 @@ NARCBench-Stego's LLM pit boss flagged 0 of 150 collusion tables across three da
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.74\linewidth]{fig_compare}
+\includegraphics[width=0.7\linewidth]{fig_compare}
 \caption{\textbf{The untrained monitor transfers; the trained probe tells collusion from one harmless note.} Overlap monitor (vermillion) vs NARCBench's deception probe (blue; Deception Split, run scores averaged over its 5 layers $\times$ 10 seeds) on identical runs, with 95\% scenario-bootstrap intervals; all AUROCs pooled over runs. (a) Collusion runs vs all-honest controls; ``their protocol'' reads the probe on discussion turns, as Rose et al.\ do. (b) Top: collusion vs the cite-evidence note. Shaded: each harmless note vs controls, where a high score is a false alarm.}
 \label{fig:compare}
 \end{figure}
@@ -226,7 +226,7 @@ The monitor detects exclusive context early, without training, despite warnings 
 \item \textbf{Naming the pair.} Even where it works, a rule names the colluders in only 70\% of held-out runs (Section~\ref{sec:who}).
 \item \textbf{Other group shapes.} It counts pairs; three or more colluders, or a group that colludes entirely, are untested (Appendix~\ref{app:limits}).
 \end{itemize}
-\emph{Limits of this study:} coalitions are instructed (some warned) and never optimised against the lens; false-positive rates are in-sample (Section~\ref{sec:monitor}); the monitor needs white-box access and a lens. Next: a second stage for harmful vs harmless context; discounting sharing that the assigned roles explain, to avoid misattribution; a signal of coupling between agents for colluders with complementary roles; and colluders trained against the lens.
+\emph{Limits of this study:} coalitions are instructed (some warned) and never optimised against the lens; false-positive rates are in-sample (Section~\ref{sec:monitor}); the monitor needs white-box access and a lens. Next: a second stage for harmful vs harmless context, discounting sharing that roles explain, coupling signals for complementary roles (Appendix~\ref{app:limits}), and adversarial colluders.
 
 \section{Conclusion}
 
