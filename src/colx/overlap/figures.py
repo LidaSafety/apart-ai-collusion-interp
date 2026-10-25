@@ -37,7 +37,7 @@ CONDITIONS = {
     "aware": "Warned of a monitor",
     "evade": "Warned + told to hide it in reasoning",
     "para": "Paraphrased instruction",
-    "independent": "No shared text, no channel",
+    "independent": "Paraphrased, no private channel",
     "benign": "Harmless secret: cite evidence",
     "benign_budget": "Harmless secret: budget",
     "benign_deadline": "Harmless secret: deadline",
@@ -118,9 +118,7 @@ def early(results: Path, out: Path) -> None:
         hi = [r["ci_high"] for r in rows] + [vote["ci_high"]]
         ax.fill_between(range(4), lo, hi, color=colour, alpha=0.15, lw=0)
         ax.plot(range(4), y, "o-", color=colour, ms=4, label=DATASETS[key].split(", ")[1])
-    ax.set_xticks(
-        range(4), ["Before R1\n(no public\nmessage yet)", "Before R2", "Before R3", "At the\nvote"]
-    )
+    ax.set_xticks(range(4), ["Before its\nfirst message", "Before R2", "Before R3", "At the\nvote"])
     ax.axhline(0.5, color="#555", ls=(0, (3, 3)), lw=0.7)
     ax.set_ylim(0.45, 1.02)
     ax.set_ylabel("AUROC")
@@ -287,7 +285,7 @@ PROBE_ROWS = [  # (key in compare.json secondary, label)
     ("gemma_final:aware_vs_core_controls", "Gemma: warned of a monitor"),
     ("gemma_final:evade_vs_core_controls", "Gemma: told to hide it"),
     ("gemma_final:para_vs_core_controls", "Gemma: paraphrased"),
-    ("gemma_final:independent_vs_core_controls", "Gemma: no shared text"),
+    ("gemma_final:independent_vs_core_controls", "Gemma: paraphrased, no channel"),
 ]
 HARMLESS_ROWS = [
     ("gemma_final:benign_vs_core_controls", "Cite-evidence note"),
