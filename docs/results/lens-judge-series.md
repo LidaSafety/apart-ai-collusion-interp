@@ -1,6 +1,6 @@
 # The lens-judge series: can J-lens readouts reveal collusion between LLM agents?
 
-2026-10-25 · Jorge Roldan (draft by Claude) · Covers round 4, the joint judge, the discussion turns and the Gemma replication. Each experiment's full report is linked below. Interactive results and a run explorer: https://claude.ai/artifact/HpHmZhgrYzFjcYqRyx2TKr · Data: `/workspace/lens-judge/README.md`
+2026-10-25 · Jorge Roldan (draft by Claude) · Covers round 4, the joint judge, the discussion turns and the Gemma replication. Each experiment's full report is linked below. Report page: https://claude.ai/artifact/JsCLtpTWd59tPSpz3nRzCd · Run explorer: https://claude.ai/artifact/HpHmZhgrYzFjcYqRyx2TKr · Data: `/workspace/lens-judge/README.md`
 
 ## The question
 
@@ -144,3 +144,4 @@ NARCBench Core was regenerated with Gemma, extracted, and read with the converge
 - **Plans:** `docs/plans/`. **Results:** `docs/results/<experiment>/README.md`.
 - **Outputs, logs, transcripts:** `/workspace/lens-judge/` (README index); round-4 outputs under `/workspace/backups/round4-judge-2026-10-22/`.
 - **Interactive page:** https://claude.ai/artifact/HpHmZhgrYzFjcYqRyx2TKr.
+- **Report page:** https://claude.ai/artifact/JsCLtpTWd59tPSpz3nRzCd.
