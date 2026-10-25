@@ -335,14 +335,11 @@ Everything else was done during the sprint (Oct 24--25):
 \end{itemize}
 \texttt{git diff -{}-stat pre-sprint HEAD} lists every change.
 
-\section{Additional results}\label{app:stress}
+\section{Supporting analyses}\label{app:stress}
+Each part backs a section of the main text: the stress tests in full (Section~\ref{sec:stress}), naming the colluding pair and flagging it end to end (Section~\ref{sec:who}), the layers and the words-relative rendering (Section~\ref{sec:readout}), and one test family (Section~\ref{sec:early}).
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.66\linewidth]{fig_layers}
-\caption{\textbf{Mid-to-late layers carry the most signal.} AUROC from one layer's entries alone. The signal peaks at mid-to-late layers (Gemma layer 45 of 62, Qwen layer 50 of 64) and fades at the last; all ten layers together are best.}
-\label{fig:layers}
-\end{figure}
+\subsection{Stress tests in full}\label{app:stressfull}
+Table~\ref{tab:stress} gives every condition's AUROC, the lens's difference from the best text monitor, the share flagged at both operating points, and how often the colluders followed through.
 
 \begin{table}[h]
 \centering\small
@@ -400,6 +397,16 @@ Transfer & held out & 36 & 24 & 67\% & 0.03\\
 
 \subsection{Flag and name, end to end}
 A deployed monitor must do both steps: flag the run, then name the pair. Here a collusion run counts only if its score exceeds every control's (0 false alarms) \emph{and} the side rule names the colluders. That holds in 24 of 50 Core runs, 25 of 50 \texttt{aware}, 32 of 50 \texttt{para}, 17 of 50 \texttt{independent} and 24 of 36 Transfer runs. Naming the pair with the Gemma LLM text monitor's choice instead gives 25, 29, 17, 16 and 13.
+
+\subsection{Layers}\label{app:layers}
+Figure~\ref{fig:layers} scores the monitor on one layer's entries at a time.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.66\linewidth]{fig_layers}
+\caption{\textbf{Mid-to-late layers carry the most signal.} AUROC from one layer's entries alone. The signal peaks at mid-to-late layers (Gemma layer 45 of 62, Qwen layer 50 of 64) and fades at the last; all ten layers together are best.}
+\label{fig:layers}
+\end{figure}
 
 \subsection{Words-relative rendering}\label{app:wordsrel}
 The planned secondary test of the words-relative tokens against the best text monitor passed on Qwen ($+0.036$, lower bound $+0.009$) but not on Gemma ($+0.042$, lower bound $-0.023$, $p=0.15$), and they warn early far less well than the raw tokens (Gemma before the first message: 0.65 vs 0.94). We therefore score with the raw tokens throughout (Figure~\ref{fig:layers} shows the raw tokens by layer).
