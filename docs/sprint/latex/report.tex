@@ -226,11 +226,11 @@ The monitor detects exclusive context early, without training, despite warnings 
 \end{itemize}
 
 \subsection{Limitations and future work}
-Coalitions are instructed (some warned), never optimised against the lens, and always two of four agents; false-positive rates are in-sample (Section~\ref{sec:monitor}). Where colluders share no context (Stego), it flags the table but names the honest pair (Appendix~\ref{app:notwork}). It needs white-box access and a lens (Appendix~\ref{app:limits}). Next: a second stage for harmful vs harmless context, and colluders trained against the lens.
+Coalitions are instructed (some warned), never optimised against the lens, and always two of four agents; false-positive rates are in-sample (Section~\ref{sec:monitor}). It also needs colluders who share their context. On Stego the colluders get different jobs (one hides the card count in table talk, the other decodes it) while the honest players get identical instructions, so it flags each collusion table but names the honest pair (Appendix~\ref{app:notwork}). It needs white-box access and a lens (Appendix~\ref{app:limits}). Next: a second stage for harmful vs harmless context, and colluders trained against the lens.
 
 \section{Conclusion}
 
-An untrained count of shared lens concepts finds colluding pairs early, beats text monitors and transfers better than trained probes, but also flags harmless exclusive context: a first stage, blind to intent.
+An untrained count of shared lens concepts finds colluding pairs early, beats text monitors and transfers better than trained probes, but flags any exclusive context: a first stage, blind to intent.
 
 \label{end:main}\section*{Code and Data}
 \phantomsection\addcontentsline{toc}{section}{Code and Data}
