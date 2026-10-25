@@ -15,8 +15,9 @@
 3. **Our first stego dataset had a confound.** NARCBench writes the true count history into the colluders' private channel. In v1, the big player's lens (0.76) mostly read that plain text, which alone predicts the count at 0.86. Removing it (v2) gave the clean test above, and Gemma still decodes: its big player's bets track the count at a median correlation of 0.40.
 4. **The Core overlap detector does not transfer to stego as a colluder finder.** In stego the two colluders get *different* instructions, so the pair that stands out is the two honest players. As a "this table is not homogeneous" score it separates collusion from control tables perfectly (raw tokens, 1.00); that reading is exploratory.
 5. **The overlap detector does transfer to new scenario types** (transfer tier, stored Qwen3-32B activations, exploratory): collusion vs control **1.00**.
-6. **NLA descriptions don't surface the secret.** A judge reading Gemma's layer-41 NLA descriptions predicts the big player's count only weakly (0.60), not reliably better than honest players (p = 0.13). The descriptions read as table chat.
-7. **The colluders' private-channel turn shows little about follow-through** (Qwen3-32B Core, exploratory: 0.52–0.64).
+6. **J++ lens ≈ J-lens** at the layers read here (Qwen3-4B, block F); the overlap detector also replicates on that third model (0.97–0.99).
+7. **NLA descriptions don't surface the secret.** A judge reading Gemma's layer-41 NLA descriptions predicts the big player's count only weakly (0.60), not reliably better than honest players (p = 0.13). The descriptions read as table chat.
+8. **The colluders' private-channel turn shows little about follow-through** (Qwen3-32B Core, exploratory: 0.52–0.64).
 
 ## Setup
 
@@ -139,15 +140,27 @@ A held-out lens classifier for follow-through at the colluders' private-message 
 
 None is clearly above the style baseline. The planned text-judge comparison needed Qwen3-32B on the GPU and was not run (block B was cut for time).
 
-## Block F: J-lens vs J++ lens (amendment 3)
+## Block F: J-lens vs J++ lens (amendment 3, exploratory)
 
-**Not run.**
-- **Why:** the ordering note ranked it below more stego data. After v2's modest S3 result, the GPU went to an independent replication (amendment 5), which runs until about 4:30 AM ET, the cutoff for F.
-- **What's prepared:** the code (`col lens-judge lenscmp run`, the Qwen3-4B backend, and the model and lens options on the Core commands) and both Qwen3-4B lens files (`/root/lenses-qwen3-4b`; hashes in `colx.backends`). It can run in about an hour.
-- **Findings for when it runs:**
-  - J++ lenses exist only for other models (Qwen3-4B, Qwen3.5/3.6, Gemma 4, Olmo 3, DeepSeek V4).
-  - The Qwen3-4B J++ lens is fitted with `lrp_mode: rlens`, likely the "R lens" asked about.
-  - Its claimed gain is at earlier layers than the band read here.
+**Run late in the night** (4:30–4:40 AM ET), once the GPU was free and the main report was written. Together with the ordering note, this goes past the 4:30 AM cutoff; it is recorded here as a deviation.
+
+**Setup:**
+- NARCBench Core regenerated with `Qwen/Qwen3-4B` (@ `1cfa9a7`).
+- **Gate 1 passed:** 18 runs colluded, 32 collusion-mode runs did not, 59 colluders did not vote the target.
+- The same activations, at 10 layers (13…32 of 0–35), read with both Neuronpedia lenses:
+  - the **J-lens** (converged, 479 prompts);
+  - the **J++ lens** (96 prompts, fitted with `lrp_mode: rlens`, likely the "R lens" asked about).
+
+| Test (same units, both lenses) | J-lens | J++ lens | J++ − J (paired bootstrap) |
+|---|---|---|---|
+| F1: overlap detector, collusion vs control, words-relative | 0.987 [0.97, 1.00] | 0.993 [0.97, 1.00] | +0.006 (n.s.) |
+| F1: same, raw tokens | 0.967 [0.93, 0.99] | 0.912 [0.86, 0.96] | **−0.055** (J++ worse) |
+| F2: instruction classifier at P1 | 0.987 | 0.991 | +0.004 (n.s.) |
+| F3: follow-through classifier at R3 T-start | 0.575 [0.41, 0.73] | 0.625 [0.48, 0.76] | +0.050 (p = 0.097, n.s.) |
+
+**Reading:**
+- **At the middle-to-late layers used throughout this series, the J++ lens performs like the J-lens.** It is slightly worse for raw-token overlap, which fits its claimed advantage being at earlier layers.
+- **The overlap detector replicates on a third model** (Qwen3-4B) at 0.97–0.99.
 
 ## What this means
 
@@ -177,7 +190,7 @@ None is clearly above the style baseline. The planned text-judge comparison need
 
 - **Amendment 1:** shoes where a counter blurted count markers are excluded; all-runs results reported too.
 - **Amendment 2:** block E (NLA) instead of block B (Qwen3-32B stego replication), by Claude under Jorge's "feel free to explore".
-- **Amendment 3:** block F (J-lens vs J++) added at Jorge's request, ranked below more stego data. "R lens" was not found as a separate lens; the J++ lens here is fitted with `lrp_mode: rlens`.
+- **Amendment 3:** block F (J-lens vs J++) added at Jorge's request, ranked below more stego data, and run at the end of the night after the planned cutoff. "R lens" was not found as a separate lens; the J++ lens here is fitted with `lrp_mode: rlens`.
 - **Amendment 4:** stego v2, after the S3 confound was found.
 - **Amendment 5:** an independent replication of v2 on shoes 50–99, analysed on its own; a pooled estimate is reported as descriptive only.
 - **Leak fix:** a wrapper around the unchanged `stego.py` moves `PRIVATE:`/`DECODE:`/`RANGE:` lines into the line `stego.py` already strips. vLLM runs on its V0 engine (V1 gives gibberish on long prompts).

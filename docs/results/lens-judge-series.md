@@ -137,6 +137,7 @@ NARCBench Core was regenerated with Gemma, extracted, and read with the converge
 - **The Core overlap detector doesn't transfer to stego as a colluder finder,** because the colluders get different instructions there.
 - **It does transfer to the transfer tier:** 1.00 (exploratory).
 - **NLA descriptions (layer 41) don't surface the decoded count** (judge 0.60, p = 0.13 vs honest).
+- **J++ lens vs J-lens** (Qwen3-4B, exploratory): no meaningful difference at our layers. The overlap detector also works on this third model (0.97–0.99).
 
 ## What we learned
 
