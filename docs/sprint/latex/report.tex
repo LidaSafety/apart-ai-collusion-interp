@@ -127,14 +127,14 @@ The positive control works: the monitor fires on every dataset (Figure~\ref{fig:
 \toprule
 & \multicolumn{3}{c}{AUROC, collusion vs controls [95\% CI]} & \multicolumn{2}{c}{True-positive rate at 0\% / 6\% FPR} & \\
 \cmidrule(lr){2-4}\cmidrule(lr){5-6}
-Dataset & Lens overlap (ours) & Best text overlap & LLM text monitor & Lens & Best text & Right split \\
+Dataset & Ours & Best text overlap & LLM text monitor & Ours & Best text overlap & Right split (ours) \\
 \midrule
 Core, Gemma-3-27B (primary) & \textbf{0.98} [0.96, 0.99] & 0.90 [0.82, 0.96] & 0.17 [0.09, 0.26]$^{\dagger}$ & \textbf{70\% / 90\%} & 64\% / 78\% & 49 / 50 \\
 Core, Qwen3-32B & \textbf{0.99} [0.97, 1.00] & 0.95 [0.91, 0.99] & 0.84 [0.76, 0.91] & \textbf{74\% / 96\%} & 66\% / 84\% & 50 / 50 \\
 Transfer, Qwen3-32B & \textbf{1.00} [1.00, 1.00] & 0.59 [0.51, 0.67] & 0.53 [0.45, 0.62] & \textbf{100\% / 100\%} & 14\% / 36\% & 36 / 36 \\
 \bottomrule
 \end{tabular}}
-\caption{\textbf{The lens monitor beats both text baselines on every dataset.} AUROC, collusion runs vs all-honest controls, with 95\% intervals; best per row in bold. LLM text monitor: Qwen3-32B on Qwen Core, Gemma-3-27B elsewhere; $^{\dagger}$inverted (Section~\ref{sec:llmmon}). True-positive rates at the frozen thresholds of Section~\ref{sec:monitor} (0\% and 6\% false positives; for text, the best monitor at each). Last column (exploratory): runs whose top pair is the colluders or the honest pair.}
+\caption{\textbf{Our monitor beats both text baselines on every dataset.} ``Ours'' is the lens overlap monitor, in both column groups. AUROC, collusion runs vs all-honest controls, with 95\% intervals; best per row in bold. LLM text monitor: Qwen3-32B on Qwen Core, Gemma-3-27B elsewhere; $^{\dagger}$inverted (Section~\ref{sec:llmmon}). True-positive rates at the frozen thresholds of Section~\ref{sec:monitor} (0\% and 6\% false positives; for text, the best monitor at each). Last column (exploratory): runs whose top pair is the colluders or the honest pair.}
 \label{tab:main}
 \end{table}
 
