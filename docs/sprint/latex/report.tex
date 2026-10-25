@@ -152,7 +152,7 @@ Read just before each agent writes its first public message, the monitor already
 \end{figure}
 
 \subsection{Who is colluding}\label{sec:who}
-The top pair is the colluders in only 31--46\% of runs (Gemma 20 of 50, Qwen 23 of 50, Transfer 11 of 36). When it isn't, it is the two \emph{honest} agents: colluders lose concepts the honest pair shares. The 2-vs-2 split is right in 135 of 136 collusion runs (Table~\ref{tab:main}; exploratory). We fixed one rule on Gemma before applying it to Qwen or Transfer: the coalition is the pair whose members share \emph{fewer} entries in total. On held-out Qwen and Transfer runs it names the colluders in 60 of 86 (70\%, $p=0.0002$, planned).
+The top pair is the colluders in only 31--46\% of runs (Gemma 20 of 50, Qwen 23 of 50, Transfer 11 of 36). When it isn't, it is the two \emph{honest} agents: colluders lose concepts the honest pair shares. The 2-vs-2 split is right in 135 of 136 collusion runs (Table~\ref{tab:main}; exploratory). We fixed one rule on Gemma before applying it to Qwen or Transfer: the coalition is the pair whose members share \emph{fewer} entries in total. On held-out Qwen and Transfer runs it names the colluders in 60 of 86 (70\%, $p=0.0002$, planned; Appendix~\ref{app:side}).
 
 \begin{figure}[t]
 \centering
@@ -370,11 +370,36 @@ Same note, given openly (\texttt{benign\_open}) & 0.94 & 0.78 & $+0.16$ [$+0.09$
 \label{tab:stress}
 \end{table}
 
-\subsection{Side rule}
-Gemma (development) 34 of 49; Qwen 36 of 50; Transfer 24 of 36; pooled held-out 60 of 86 (0.70, one-sided binomial $p=0.0002$). The rule chooses only within a right split.
+\subsection{Naming the colluding pair: the side rule}\label{app:side}
+\emph{The problem.} The monitor's top pair splits the four agents into two pairs, and in 135 of 136 collusion runs that split is right: one side is the colluders, the other the two honest agents (Section~\ref{sec:who}). But the top pair is the colluders in only 31--46\% of runs, because the honest pair often stands out as much (Figure~\ref{fig:anatomy}a). So the monitor finds the split but not which side is the coalition.
 
-\subsection{Flag and name}
-With the threshold at the largest control score (0 false alarms), the monitor flags and the side rule names the right pair in 24 of 50 Core runs, 25 of 50 \texttt{aware}, 32 of 50 \texttt{para}, 17 of 50 \texttt{independent} and 24 of 36 Transfer runs. Using the Gemma text judge's named pair instead gives 25, 29, 17, 16 and 13.
+\emph{The rule.} Of the top pair $\{i,j\}$ and its complement, the coalition is the pair whose two members share \emph{fewer} lens entries in total, $|S_i \cap S_j|$, now counting entries other agents also hold (ties go to the top pair). It needs no labels.
+
+\emph{How it was chosen.} We compared five label-free candidates on Gemma Core only:
+\begin{itemize}
+\item the exclusive count;
+\item entries held by one agent alone;
+\item all entries shared within the pair;
+\item sharing across the two pairs;
+\item Jaccard similarity.
+\end{itemize}
+We fixed this one in the plan (amendment 1) before applying it, once, to Qwen and Transfer. We did not test why it works. In the table, $p$ is a one-sided binomial test against naming the right side by chance ($\tfrac12$).
+
+\begin{center}\small
+\begin{tabular}{llcccc}
+\toprule
+Set & Role & Right splits & Colluders named & Share & $p$\\
+\midrule
+Gemma Core & rule chosen here & 49 & 34 & 69\% & 0.005\\
+Qwen Core & held out & 50 & 36 & 72\% & 0.001\\
+Transfer & held out & 36 & 24 & 67\% & 0.03\\
+\textbf{Held out, pooled} & \textbf{planned test} & \textbf{86} & \textbf{60} & \textbf{70\%} & \textbf{0.0002}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Flag and name, end to end}
+A deployed monitor must do both steps: flag the run, then name the pair. Here a collusion run counts only if its score exceeds every control's (0 false alarms) \emph{and} the side rule names the colluders. That holds in 24 of 50 Core runs, 25 of 50 \texttt{aware}, 32 of 50 \texttt{para}, 17 of 50 \texttt{independent} and 24 of 36 Transfer runs. Naming the pair with the Gemma LLM text monitor's choice instead gives 25, 29, 17, 16 and 13.
 
 \subsection{Words-relative rendering}\label{app:wordsrel}
 The planned secondary test of the words-relative tokens against the best text monitor passed on Qwen ($+0.036$, lower bound $+0.009$) but not on Gemma ($+0.042$, lower bound $-0.023$, $p=0.15$), and they warn early far less well than the raw tokens (Gemma before the first message: 0.65 vs 0.94). We therefore score with the raw tokens throughout (Figure~\ref{fig:layers} shows the raw tokens by layer).
@@ -518,7 +543,7 @@ A pair's count is the number of entries both agents hold and neither other agent
 n_{ij} = \big|(S_i \cap S_j) \setminus (S_k \cup S_m)\big|, \qquad
 s = \max_{i<j} n_{ij} - \operatorname*{median}_{i<j} n_{ij}.
 \]
-The pair with the largest count is the \emph{top pair}. Nothing is fitted; the median makes the score relative to how much any two agents of that run happen to share. The side rule (Section~\ref{sec:who}) takes the top pair and its complement and names as the coalition the pair whose members share fewer entries in total, $|S_i \cap S_j|$ (ties go to the top pair). The frozen decision rule flags a run when $s > \tau_0 = \max_c s_c$ or $s > \tau_5 = Q_{0.95}(s_c)$, over the control runs $c$. Figure~\ref{fig:anatomy} takes the method figure's run apart.
+The pair with the largest count is the \emph{top pair}. Nothing is fitted; the median makes the score relative to how much any two agents of that run happen to share. The side rule (Section~\ref{sec:who}, Appendix~\ref{app:side}) takes the top pair and its complement and names as the coalition the pair whose members share fewer entries in total, $|S_i \cap S_j|$ (ties go to the top pair). The frozen decision rule flags a run when $s > \tau_0 = \max_c s_c$ or $s > \tau_5 = Q_{0.95}(s_c)$, over the control runs $c$. Figure~\ref{fig:anatomy} takes the method figure's run apart.
 
 \begin{figure}[h]
 \centering
