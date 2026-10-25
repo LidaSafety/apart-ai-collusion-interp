@@ -41,10 +41,12 @@ class Verbalizer:
             model_dir, dtype=torch.bfloat16, device_map="cuda"
         ).eval()
         content = meta["prompt_templates"]["av"].format(injection_char=tok["injection_char"])
-        ids = self.tokenizer.apply_chat_template(
-            [{"role": "user", "content": content}], tokenize=True, add_generation_prompt=True
+        # Two-step render + tokenize without adding special tokens (the template already has
+        # <bos>); equivalent to kitft's one-step form, which returns a BatchEncoding here.
+        text = self.tokenizer.apply_chat_template(
+            [{"role": "user", "content": content}], tokenize=False, add_generation_prompt=True
         )
-        ids = list(ids["input_ids"] if isinstance(ids, dict) else ids)
+        ids = self.tokenizer(text, add_special_tokens=False)["input_ids"]
         hits = [i for i, t in enumerate(ids) if t == tok["injection_token_id"]]
         assert len(hits) == 1, "marker must appear once in the canonical prompt"
         self.pos = hits[0]
