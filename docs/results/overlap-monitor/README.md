@@ -33,7 +33,7 @@
    - **the probe tells collusion from the cite-evidence note** (K1, 0.97), where overlap can't (0.64; K2, +0.33);
    - but the probe also flags the budget and deadline notes against controls (0.93, 0.92, exploratory); collusion vs those notes was not tested;
    - the supervised TF-IDF baseline **failed its validity gate** (shuffled labels still give 0.63 and 0.84), so it is reported as invalid.
-10. **Where it fails:** coalitions that share no context. On NARCBench-Stego the two colluders get different instructions, and the overlap monitor finds nothing ([`../stego/README.md`](../stego/README.md)).
+10. **Where it fails:** naming colluders who share no context. On NARCBench-Stego the two colluders get different instructions while the two honest players get identical ones. The raw score still separates collusion tables from controls perfectly (1.00), but it names the honest pair, never the colluders. The planned words-relative test reversed (0.37); see [`../stego/README.md`](../stego/README.md).
 
 ## Part 1: lens overlap vs text overlap
 
