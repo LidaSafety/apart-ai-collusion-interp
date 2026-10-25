@@ -185,3 +185,14 @@ Written after amendment 2's results: the second stage was null, and the detector
 - The same judge and question as E, but showing the *words-relative* P1 tokens exclusive to each side of the detector's split (raw split, as in E), plus the run's public brief, so the judge can relate the shared concepts to the options.
 - Contrast: Core collusion vs `benign`.
 - Labelled exploratory, because it follows a null on the same contrast.
+
+**Amendment 3 predictions** (recorded at 9:55 AM ET, during generation, before any amendment-3 lens or text result existed):
+
+| Test | Prediction | Confidence |
+|---|---|---|
+| G1, `evade` vs controls | 0.95–0.99, passes | ~90% |
+| `benign_budget`, `benign_deadline` vs controls | 0.85–0.95 | ~80% |
+| Text overlap on those two | clearly below the lens (~0.60–0.80) | ~65% |
+| `benign_open` vs controls | 0.75–0.92, a little below secret `benign` | ~60% |
+| G2, secret vs open note | 0.55–0.65, probably not significant | ~60% |
+| Text overlap on `benign_open` | above secret `benign` | ~60% |
