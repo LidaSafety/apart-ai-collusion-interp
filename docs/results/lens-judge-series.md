@@ -2,6 +2,8 @@
 
 2026-10-25 · Jorge Roldan (draft by Claude) · Covers round 4, the joint judge, the discussion turns and the Gemma replication. Each experiment's full report is linked below. Report page: https://claude.ai/artifact/JsCLtpTWd59tPSpz3nRzCd · Run explorer: https://claude.ai/artifact/HpHmZhgrYzFjcYqRyx2TKr · Data: `/workspace/lens-judge/README.md`
 
+> **Update (2026-10-25, later):** the next step below, using the overlap detector as a monitor, became the overlap-monitor experiment. It covers text baselines, Transfer, stress tests, an operating point, and NARCBench's trained probes. See [`overlap-monitor/README.md`](overlap-monitor/README.md) and the sprint report [`../sprint/latex/report.pdf`](../sprint/latex/report.pdf). The table below is as of this overview.
+
 ## The question
 
 In NARCBench Core, 4 LLM agents on a committee discuss a case for three rounds, then vote. In half the runs (**collusion mode**), 2 agents are secretly told to push one option and get a private channel; in the other half (**control**) all 4 are honest. A run **colluded** when both instructed agents voted the target option.

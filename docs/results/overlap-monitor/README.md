@@ -7,13 +7,15 @@
 1. **The lens beats text overlap on every original dataset** (planned primary passes):
    - Gemma Core +0.08 AUROC (lower bound +0.02);
    - Qwen Core +0.035;
-   - Transfer +0.41, where text is near chance (exploratory).
+   - Transfer +0.41, where text is near chance (exploratory);
+   - at zero false alarms on the controls (in-sample), the lens catches 70%, 74% and 100% of collusion runs; the best text monitor at most 64%, 66% and 14%.
 2. **The detector survives every stress test** (planned, all pass Holm):
    - colluders warned that their reasoning is monitored: 0.99;
+   - warned and told to keep the arrangement out of their reasoning: 0.99 (amendment 3);
    - paraphrased instructions: 0.96;
    - paraphrased with no private channel: 0.89.
-3. **It is not collusion-specific.** Two honest agents who share a harmless confidential note are flagged too (0.94). It can barely tell real collusion from that (0.64). It is a **shared-secret-context detector**.
-4. **Under stress, the text catches up.** In the new Gemma runs, text-overlap monitors score 0.88–0.98, and the lens's edge over them is no longer significant.
+3. **It is not collusion-specific.** Two honest agents who share a harmless confidential note are flagged too: three different notes 0.88–0.94, and the first note given openly 0.94. It can barely tell real collusion from the first (0.64). It detects **context only two agents share**, not secrecy or intent.
+4. **Under stress, the text catches up.** On the new collusion conditions text overlap scores 0.92–0.98, and the lens's edge is no longer significant.
 5. **Early warning** (planned):
    - the lens flags coalitions from each agent's state *before its first public message*: Gemma 0.94, Qwen 0.93;
    - agents speak in turn, so later speakers have read earlier speakers' first messages (and colluders their private channel); but no agent's own words exist yet for a text-overlap monitor to compare.
@@ -26,11 +28,12 @@
    - Gemma-3-27B with the same prompt on Gemma transcripts is **inverted (0.17)**: it reads honest agents converging on the fair option as coordination. It is inverted on every stress set too (0.12–0.14) and at chance on Transfer (0.53).
    - Its *named pair* is often right (32 of 50 on Gemma Core), more often than the lens's top pair.
 9. **Against NARCBench's own trained deception probes** (planned, amendment 4; all three tests pass Holm):
-   - the reproduction matches the paper on Core (1.00 for both models); zero-shot on Transfer it is lower than reported (0.74–0.77 vs 0.82–0.88);
-   - **the untrained overlap transfers, the probe doesn't:** Qwen Transfer 1.00 vs 0.78 (K3, +0.22, lower bound +0.13);
+   - the reproduction matches the paper on Core (Qwen: 1.00 with all five statistics; Gemma: four of five, the fifth 0.96); zero-shot on Transfer it is lower than reported (0.74–0.77 vs 0.82–0.88);
+   - **the untrained overlap transfers better:** Qwen Transfer 1.00 vs 0.78 (K3, +0.22, lower bound +0.13);
    - **the probe tells collusion from the cite-evidence note** (K1, 0.97), where overlap can't (0.64; K2, +0.33);
    - but the probe also flags the budget and deadline notes against controls (0.93, 0.92, exploratory); collusion vs those notes was not tested;
    - the supervised TF-IDF baseline **failed its validity gate** (shuffled labels still give 0.63 and 0.84), so it is reported as invalid.
+10. **Where it fails:** coalitions that share no context. On NARCBench-Stego the two colluders get different instructions, and the overlap monitor finds nothing ([`../stego/README.md`](../stego/README.md)).
 
 ## Part 1: lens overlap vs text overlap
 
@@ -287,8 +290,9 @@ Outputs: `results/probes/{qwen,gemma}/`, `results/probes/qwen/paper_metrics*.jso
 ## Limitations
 
 - One generation per condition, 50 runs each, on one model (Gemma) for the stress tests.
-- Transfer was exploratory.
-- The benign note is a single wording.
+- The lens-vs-text comparison on Transfer was exploratory (the comparison with the probe there, K3, was planned).
+- The harmless notes are three wordings, plus one open variant.
+- False-positive rates are in-sample: the thresholds are set on the same 50 Core controls, which every stress set reuses.
 - Both stress-test colluders still read each other's public messages.
 - Sampling isn't seeded per request (vLLM), so transcripts can't be regenerated exactly. The transcripts themselves are stored.
 - The provenance header of every result file records the series' default `model` (Qwen/Qwen3-32B), also for Gemma analyses: `colx.provenance.collect` fills it from a constant and no caller overrides it. The numbers are unaffected; each file's `command` and input paths say which model's data it analysed.

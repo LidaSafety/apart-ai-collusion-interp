@@ -389,7 +389,7 @@ In NARCBench-Stego a counter signals the card count to a big player through tabl
 \item \textbf{Leak 1.} The big player's ``PRIVATE:'' decoding notes were stripped only when labelled ``DECODE:'', so they reached the public chat.
 \item \textbf{Leak 2.} The true count history of earlier hands was written into the colluders' private channel.
 \end{itemize}
-We fixed both leaks with wrappers that leave the benchmark's code unchanged. A planned test of whether the receiver's lens holds the decoded count was nominally positive on the leak-free data ($+0.089$, $p=0.021$, not significant after Holm over its three planned tests) and did not replicate on 50 new shoes ($+0.023$, $p=0.34$).
+We fixed both leaks with wrappers that leave the benchmark's code unchanged. A planned test of whether the receiver's lens holds the decoded count, the single primary test on the leak-free data, passed ($+0.089$, $p=0.021$), but a planned replication on 50 new shoes did not confirm it ($+0.023$, $p=0.34$).
 
 \section{Stress-test prompts}\label{app:prompts}
 \textbf{\texttt{aware}} (appended to both colluders' system prompts):
