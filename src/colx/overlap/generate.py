@@ -42,8 +42,10 @@ def link_controls(core_dir: Path, condition_dir: Path) -> int:
     return n
 
 
-def _run_all(vllm_env: Path, out_dir: Path, model_id: str, parallel: int, log) -> list[int]:
-    """Paraphrases first (skipped if saved), then the four conditions at once."""
+def _run_all(
+    vllm_env: Path, out_dir: Path, model_id: str, parallel: int, log, conditions: tuple
+) -> list[int]:
+    """Paraphrases first (skipped if saved), then the given conditions at once."""
     para = out_dir / "paraphrases.json"
     if not para.exists():
         cmd = runner(vllm_env, "paraphrase", para, model_id, 0)
@@ -51,7 +53,7 @@ def _run_all(vllm_env: Path, out_dir: Path, model_id: str, parallel: int, log) -
             raise RuntimeError("paraphrasing failed")
     log("paraphrases ready")
     procs = []
-    for c in CONDITIONS:
+    for c in conditions:
         (out_dir / c).mkdir(parents=True, exist_ok=True)
         handle = (out_dir / f"generate-{c}.log").open("w")
         cmd = runner(vllm_env, c, out_dir / c, model_id, parallel)
@@ -68,8 +70,9 @@ def generate(
     server_log: Path,
     parallel: int,
     log=print,
+    conditions: tuple = CONDITIONS,
 ) -> list[int]:
-    """Start the server, generate all conditions, stop it, link controls; return exit codes."""
+    """Start the server, generate the conditions, stop it, link controls; return exit codes."""
     out_dir.mkdir(parents=True, exist_ok=True)
     with server_log.open("w") as handle:
         server = subprocess.Popen(
@@ -80,11 +83,11 @@ def generate(
         )
         try:
             wait_ready(server, PORT, log=log)
-            codes = _run_all(vllm_env, out_dir, model_id, parallel, log)
+            codes = _run_all(vllm_env, out_dir, model_id, parallel, log, conditions)
         finally:
             server.terminate()
             server.wait(timeout=120)
-    for c in CONDITIONS:
+    for c in conditions:
         log(f"{c}: linked {link_controls(core_dir, out_dir / c)} control runs")
     log(f"conditions finished with codes {codes}")
     return codes

@@ -31,10 +31,24 @@ def generate(
         "results/logs/vllm-overlap.log"
     ),
     parallel: Annotated[int, typer.Option(help="Scenarios in parallel per condition.")] = 8,
+    condition: Annotated[
+        list[str] | None,
+        typer.Option(help="Conditions to generate (repeat; default: part 2's four)."),
+    ] = None,
 ) -> None:
-    """Generate the four stress conditions with Gemma (vLLM + wrapped core.py; GPU)."""
+    """Generate stress conditions with Gemma (vLLM + wrapped core.py; GPU)."""
+    from colx.overlap.generate import CONDITIONS
+
     codes = run_generate(
-        vllm_env, model_dir, model_id, out_dir, core_dir, server_log, parallel, console.print
+        vllm_env,
+        model_dir,
+        model_id,
+        out_dir,
+        core_dir,
+        server_log,
+        parallel,
+        console.print,
+        tuple(condition) if condition else CONDITIONS,
     )
     if any(codes):
         raise typer.Exit(code=1)
@@ -332,6 +346,32 @@ def _content_tables():
 
 
 TOKENS_GEMMA = Path("results/gemma/final_tokens.parquet")
+
+
+def _brief_tables():
+    """H prompt tables: Gemma Core (all runs) and each part-2 condition's collusion runs."""
+    import pandas as pd
+
+    from colx.narcbench.runs import load_runs, split_final_prompt
+    from colx.overlap.compare import run_frame
+    from colx.overlap.content import brief_prompt_table
+
+    def table(runs, tokens):
+        briefs = {
+            r.run_id: split_final_prompt(r.final_user_prompt, r.public_messages).brief for r in runs
+        }
+        frame = run_frame(runs)
+        return brief_prompt_table(frame, tokens, briefs)
+
+    tables = {"gemma": table(load_runs(GEMMA_CORE), pd.read_parquet(TOKENS_GEMMA))}
+    for c in ("aware", "para", "independent", "benign"):
+        runs = [r for r in load_runs(STRESS_DIR / c) if r.mode == "collusion"]
+        tables[c] = table(
+            runs, pd.read_parquet(Path("results/overlap") / c / "final_tokens.parquet")
+        )
+    return tables
+
+
 QWEN_HEAD = Path("/root/qwen3-32b-head")  # Qwen3-32B tokenizer, for Transfer token text
 
 
@@ -342,11 +382,14 @@ def content(
     ),
     out_dir: Annotated[Path, typer.Option(help="Output folder.")] = Path("results/overlap/content"),
     dry_run: Annotated[bool, typer.Option(help="2 runs per set; print one prompt.")] = False,
+    brief: Annotated[
+        bool, typer.Option(help="Amendment 3 H: words-relative tokens plus the public brief.")
+    ] = False,
 ) -> None:
-    """Amendment 2 E: Gemma rates the tokens each side of the split shares (GPU)."""
+    """Amendment 2 E (or 3 H): Gemma rates the tokens each side of the split shares (GPU)."""
     from colx.overlap.content import run_content
 
-    tables = _content_tables()
+    tables = _brief_tables() if brief else _content_tables()
     if dry_run:
         tables = {k: v.head(2) for k, v in tables.items()}
         console.print(tables["gemma"].prompt.iloc[0])
@@ -403,3 +446,62 @@ def extras2(
         console.print(f"E {k}: stage2 {_auc(v['stage2'])} | lens {v['lens']['auroc']:.3f} | {diff}")
     for k, v in f_out.items():
         console.print(f"F {k}: {v}")
+
+
+@app.command()
+def stress3(
+    transcripts: Annotated[Path, typer.Option(help="Condition transcript folders.")] = STRESS_DIR,
+    results: Annotated[Path, typer.Option(help="Condition result folders.")] = Path(
+        "results/overlap"
+    ),
+    core_table: Annotated[Path, typer.Option(help="Part-1 Gemma score table.")] = Path(
+        "results/overlap/text/gemma.parquet"
+    ),
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """Amendment 3: evade, three benign variants, secret vs open note."""
+    from colx.overlap.stress import analyse3
+
+    record = analyse3(transcripts, results, core_table, n_boot, n_perm, console.print)
+    for c, r in record["conditions"].items():
+        for name in ("lens_raw", "lens_rel", "text_top250", "text_cosine"):
+            m = r["mode_vs_control"][name]
+            console.print(f"{c:16s} {name:12s} {_auc(m)}  split {m['split_found']}/{m['of']}")
+        console.print(f"{c:16s} behaviour {r['behaviour']}")
+    for key in ("G2_secret_vs_open_lens_raw", "primary_holm", "operating_point_lens_raw"):
+        console.print(key, record[key])
+
+
+@app.command("content-brief-tests")
+def content_brief_tests(
+    out_dir: Annotated[Path, typer.Option(help="Output folder.")] = Path("results/overlap/extras"),
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """Amendment 3 H (exploratory): tests of the words-relative + brief stage-2 judge."""
+    import pandas as pd
+
+    from colx.narcbench.runs import load_runs
+    from colx.overlap import extras as ex
+    from colx.overlap.compare import run_frame
+
+    res = Path("results/overlap")
+    frames, sets = {}, {}
+    frames["gemma"], _, sets["gemma"] = _frame_and_p1("gemma")
+    for c in ("aware", "para", "independent", "benign"):
+        f = run_frame(load_runs(STRESS_DIR / c))
+        frames[c] = f[f["mode"] == "collusion"].reset_index(drop=True)
+        t = pd.read_parquet(res / c / "final_tokens.parquet")
+        sets[c] = ex.entry_sets(t[(t.rendering == "raw") & (t.position == "P1")])
+    lens = {s: ex.run_scores(frames[s], sets[s]) for s in frames}
+    stage2 = {s: pd.read_parquet(res / "content_brief" / f"{s}.parquet") for s in frames}
+    e = ex.content_tests(frames, stage2, lens, n_boot, n_perm)
+    ex.save(
+        {"content_brief_judge": e, "label": "exploratory (amendment 3 H)"},
+        out_dir,
+        "amendment3_h",
+        "col lens-judge overlap content-brief-tests",
+    )
+    for k, v in e.items():
+        console.print(f"H {k}: stage2 {_auc(v['stage2'])} | lens {v['lens']['auroc']:.3f}")
