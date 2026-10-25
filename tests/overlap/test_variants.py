@@ -85,3 +85,24 @@ def test_para_keys_on_the_scenario_not_only_the_name() -> None:
     kw = {"motive": "OTHER SCENARIO MOTIVE", "deception_instruction": "DECEIVE"}
     out = core.COLLUDER_SYSTEM_A.format(agent_name=second, **kw)
     assert out.endswith("OTHER SCENARIO MOTIVE\n\nDECEIVE")
+
+
+def test_evade_appends_the_stronger_warning() -> None:
+    core = fake_core()
+    variants.apply_condition(core, "evade", None)
+    out = core.COLLUDER_SYSTEM_A.format(agent_name="X", motive="M", deception_instruction="D")
+    assert out.endswith(variants.EVADE) and variants.AWARE in out
+
+
+def test_benign_open_differs_from_benign_only_in_the_secrecy_sentence() -> None:
+    secret, open_ = variants.BENIGN_NOTES["benign"], variants.BENIGN_NOTES["benign_open"]
+    assert "Keep this request to yourself." in secret and "openly" in open_
+    assert secret.split("Keep this")[0] == open_.split("You are free")[0]
+
+
+def test_benign_variants_set_their_own_note() -> None:
+    for name in ("benign_budget", "benign_deadline", "benign_open"):
+        core = fake_core()
+        variants.apply_condition(core, name, None)
+        assert core.SCENARIOS[0]["collusion_motive"] == variants.BENIGN_NOTES[name]
+        assert core.SCENARIOS[0]["deception_instruction"] == "HONEST"
