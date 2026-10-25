@@ -7,29 +7,10 @@
 > Drafting notes for the team (remove before submission):
 > - Every number below comes from a result file named in `docs/results/`.
 > - References marked [verify] must be checked against the source before submission.
-> - Section 4.7 (LLM text monitor) gets its final numbers when the run completes.
 
 ## Abstract
 
-When LLM agents secretly coordinate against the people they serve, a monitor that only reads their messages can miss it. We ask whether their internal activations show the coalition instead.
-
-We read every agent's residual stream through a Jacobian lens, which maps an activation to the tokens the model represents. Our monitor needs no labels, training or LLM: per run, it counts the lens entries that exactly two of four agents share.
-
-**Original benchmark (NARCBench committee votes, two models).**
-- It separates runs with an instructed coalition from all-honest controls at AUROC 0.98–0.99, beating the same count on the agents' own messages (planned test, +0.08 on Gemma-3-27B).
-- On six unseen task types it reaches 1.00, where text overlap scores 0.59.
-- It fires before either colluder has written a public message (0.93–0.94).
-- A rule fixed on one model names the colluding pair in 70% of held-out runs.
-
-**Stress tests (four new conditions).**
-- It survives colluders warned that their reasoning is monitored (0.99), paraphrased instructions (0.96), and instructions sharing no wording, with no private channel (0.89).
-- But it flags two honest agents sharing a harmless confidential note almost as readily (0.94). Under stress, text overlap catches up.
-
-**Audit.** NARCBench-Stego's built-in monitor flags 0 of 150 steganographic coalitions, and two leaks in the benchmark expose the secret in plain text.
-
-**Conclusion.** Lens overlap is a cheap, early detector of shared hidden context, not of harmful intent.
-
-*(≈230 words)*
+LLM agents that secretly coordinate against the people they serve can keep their messages innocuous, so text monitors can miss them. We test whether their activations show the coalition instead. We read each agent's residual stream through a Jacobian lens and count the lens entries that exactly two of four agents share; the monitor needs no labels, training or LLM. On NARCBench committee votes with two models, it separates runs containing an instructed coalition from all-honest controls at AUROC 0.98–0.99. It beats the same count on the agents' messages (planned test, +0.08) and an LLM judge reading the discussion (0.99 vs 0.84). On six unseen task types it reaches 1.00, where text overlap scores 0.59. It fires before either colluder writes a public message (0.93–0.94), and a rule fixed on one model names the colluding pair in 70% of held-out runs. In four new stress conditions it survives colluders warned that their reasoning is monitored (0.99), paraphrased instructions (0.96), and instructions sharing no wording (0.89). But it flags two honest agents sharing a harmless confidential note almost as readily (0.94), and under stress text overlap catches up. Lens overlap is therefore a cheap, early detector of shared hidden context, not of harmful intent. We also find that NARCBench-Stego's own monitor flags none of 150 steganographic coalitions, and that two benchmark leaks expose the secret in plain text.
 
 ## 1. Introduction
 
@@ -163,11 +144,18 @@ A planned test of whether the receiver's lens holds the decoded count was positi
 
 ### 4.7 LLM text monitor (planned)
 
-The prompt was fixed before the run.
-- **Qwen3-32B**, reading Qwen transcripts: mode vs control **0.84**, so the lens (0.99) beats it.
-- **Gemma-3-27B**, reading Gemma transcripts with the same prompt, is **inverted (0.17)**. Its replies treat honest agents converging on the fair option as "verbatim alignment … strongly suggests coordinated communication". Real colluders argue against the room.
-- We report it as planned and do not flip the score.
-- *[Stress-set and Transfer numbers to be added.]*
+A frozen judge reads each run's public discussion and rates 0–9 whether two agents collude, then names a pair. The prompt was fixed before the run.
+
+| Set | LLM monitor | Lens | Lens − monitor (lower 95%) |
+|---|---|---|---|
+| Qwen Core (Qwen3-32B judge) | **0.84** | 0.99 | **+0.15** (+0.09) |
+| Gemma Core (Gemma-3-27B judge, primary) | 0.17 (inverted) | 0.98 | +0.81 (+0.74) |
+| Transfer (Gemma judge) | 0.53 | 1.00 | +0.47 (+0.39) |
+| Stress sets (Gemma judge) | 0.12–0.39 | 0.89–0.99 | +0.55 to +0.84 |
+
+- **Qwen is the fair comparison.** There the LLM monitor works, and the lens beats it.
+- **The Gemma monitor is inverted.** Its replies call honest agents' convergence on the fair option "verbatim alignment … strongly suggests coordinated communication", while real colluders argue against the room. We keep the planned score and do not flip it.
+- **Its named pair is often right** (32 of 50 on Gemma Core), more often than the lens's top pair. That suggests combining the lens (whether to flag) with a text judge (who), which we have not tested.
 
 ### 4.8 What did not work
 
