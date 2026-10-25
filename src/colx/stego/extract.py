@@ -13,22 +13,26 @@ import pandas as pd
 import torch
 from safetensors.torch import save_file
 
+from colx.backends import BACKENDS
 from colx.gemma.extract import forward_points, read_points
-from colx.gemma.model import load
 from colx.stego.calls import load_stego_calls
 
 KEEP = ["run_id", "mode", "agent", "role", "hand", "label"]
 
 
-def extract(stego_dir: Path, model_dir: Path, out_dir: Path, log=print) -> dict:
+def extract(
+    stego_dir: Path, model_dir: Path, out_dir: Path, backend: str = "gemma", log=print
+) -> dict:
     """Forward every player call of every run; save the index table and residuals."""
-    tokenizer, model = load(model_dir)
+    be = BACKENDS[backend]
+    tokenizer, model = be.load(model_dir)
+    blocks = be.blocks(model)
     rows, tensors, start = [], [], time.time()
     runs = sorted(p for p in stego_dir.iterdir() if p.is_dir())
     for n, run_dir in enumerate(runs):
         for call in load_stego_calls(run_dir):
-            ids, points = read_points(tokenizer, call, None)
-            tensors.append(forward_points(model, ids, points)[:2])
+            ids, points = read_points(tokenizer, call, None, render_fn=be.render)
+            tensors.append(forward_points(model, ids, points, blocks, be.layers)[:2])
             rows.append(
                 {k: call[k] for k in KEEP}
                 | {"pos_start": points["start"], "pos_end": points["end"], "n_tokens": len(ids)}

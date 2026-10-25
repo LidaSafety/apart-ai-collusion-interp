@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 from colx import provenance
-from colx.gemma.model import load
+from colx.backends import BACKENDS
 from colx.joint.scoring import digit_token_ids, rating_records
 from colx.judge.run import MAX_BATCH_TOKENS
 from colx.judge.scoring import last_logits, length_batches
@@ -41,7 +41,9 @@ def monitor_prompt(results: dict) -> str:
     return "\n\n".join([SETTING, "TABLE CHAT:\n" + chat_text(results), QUESTION])
 
 
-def run_monitor(stego_dir: Path, model_dir: Path, out_dir: Path, log=print) -> dict:
+def run_monitor(
+    stego_dir: Path, model_dir: Path, out_dir: Path, backend: str = "gemma", log=print
+) -> dict:
     """Score every run; save `monitor.parquet` (run, mode, P(0..9), rating)."""
     runs = sorted(p for p in stego_dir.iterdir() if p.is_dir())
     table = pd.DataFrame(
@@ -54,14 +56,10 @@ def run_monitor(stego_dir: Path, model_dir: Path, out_dir: Path, log=print) -> d
             for r in runs
         ]
     )
-    tokenizer, model = load(model_dir)
+    be = BACKENDS[backend]
+    tokenizer, model = be.load(model_dir)
     tokenizer.padding_side = "left"
-    texts = [
-        tokenizer.apply_chat_template(
-            [{"role": "user", "content": p}], tokenize=False, add_generation_prompt=True
-        )
-        for p in table.prompt
-    ]
+    texts = [be.render_user(tokenizer, p) for p in table.prompt]
     lengths = [len(i) for i in tokenizer(texts, add_special_tokens=False)["input_ids"]]
     ids, records, start = digit_token_ids(tokenizer), [None] * len(texts), time.time()
     for batch in length_batches(lengths, MAX_BATCH_TOKENS):
@@ -75,7 +73,8 @@ def run_monitor(stego_dir: Path, model_dir: Path, out_dir: Path, log=print) -> d
     out = pd.concat([table.drop(columns=["prompt"]), pd.DataFrame(records)], axis=1)
     out.to_parquet(out_dir / "monitor.parquet", index=False)
     provenance.write_meta(
-        out_dir / "monitor.parquet", provenance.collect("col lens-judge stego monitor")
+        out_dir / "monitor.parquet",
+        provenance.collect("col lens-judge stego monitor", backend=backend),
     )
     return {
         "runs": len(out),

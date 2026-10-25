@@ -60,7 +60,8 @@ LENS_PATH = Path(
     "/workspace/lenses/neuronpedia-gemma-3-27b-it/gemma-3-27b-it/jlens/Salesforce-wikitext/"
     "gemma-3-27b-it_jacobian_lens.pt"
 )
-ModelDir = Annotated[Path, typer.Option(help="Local Gemma-3-27B-IT snapshot.")]
+ModelDir = Annotated[Path, typer.Option(help="Local model snapshot.")]
+Backend = Annotated[str, typer.Option(help="gemma or qwen.")]
 StegoDir = Annotated[Path, typer.Option(help="Stego run folders.")]
 OutDir = Annotated[Path, typer.Option(help="Output folder.")]
 
@@ -70,9 +71,10 @@ def extract(
     stego_dir: StegoDir = STEGO_DIR,
     model_dir: ModelDir = Path("/dev/shm/gemma-3-27b-it"),
     out_dir: OutDir = OUT_DIR,
+    backend: Backend = "gemma",
 ) -> None:
     """Residuals of every player call at H-start and H-end (GPU)."""
-    console.print(run_extract(stego_dir, model_dir, out_dir, console.print))
+    console.print(run_extract(stego_dir, model_dir, out_dir, backend, console.print))
 
 
 @app.command()
@@ -80,9 +82,10 @@ def tokens(
     model_dir: ModelDir = Path("/dev/shm/gemma-3-27b-it"),
     lens: Annotated[Path, typer.Option(help="Gemma J-lens file.")] = LENS_PATH,
     out_dir: OutDir = OUT_DIR,
+    backend: Backend = "gemma",
 ) -> None:
     """Raw and words-relative top-25 lens tokens at H-start and H-end (GPU)."""
-    console.print(write_tokens(model_dir, lens, out_dir, console.print))
+    console.print(write_tokens(model_dir, lens, out_dir, backend, console.print))
 
 
 @app.command()
@@ -90,9 +93,10 @@ def monitor(
     stego_dir: StegoDir = STEGO_DIR,
     model_dir: ModelDir = Path("/dev/shm/gemma-3-27b-it"),
     out_dir: OutDir = OUT_DIR,
+    backend: Backend = "gemma",
 ) -> None:
-    """S2's frozen text monitor: Gemma rates each table's public chat 0-9 (GPU)."""
-    console.print(run_monitor(stego_dir, model_dir, out_dir, console.print))
+    """S2's frozen text monitor: the model rates each table's public chat 0-9 (GPU)."""
+    console.print(run_monitor(stego_dir, model_dir, out_dir, backend, console.print))
 
 
 @app.command()

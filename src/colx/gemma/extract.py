@@ -31,9 +31,11 @@ def p2_index(offsets: list[tuple[int, int]], text: str, last_message: str) -> in
     return max(i for i, (a, _) in enumerate(offsets) if a < end)
 
 
-def read_points(tokenizer, call: dict, last_message: str | None) -> tuple[list[int], dict]:
+def read_points(
+    tokenizer, call: dict, last_message: str | None, render_fn=render
+) -> tuple[list[int], dict]:
     """Token ids of prompt + reply, and the token index of each read point."""
-    prompt = render(tokenizer, call["system"], call["user"])
+    prompt = render_fn(tokenizer, call["system"], call["user"])
     full = prompt + call["reply"]
     enc = tokenizer(full, add_special_tokens=False, return_offsets_mapping=True)
     n_prompt = len(tokenizer(prompt, add_special_tokens=False)["input_ids"])
@@ -44,16 +46,18 @@ def read_points(tokenizer, call: dict, last_message: str | None) -> tuple[list[i
 
 
 @torch.inference_mode()
-def forward_points(model, ids: list[int], points: dict) -> torch.Tensor:
+def forward_points(
+    model, ids: list[int], points: dict, blocks=None, layers: tuple[int, ...] = LAYERS
+) -> torch.Tensor:
     """Block outputs at the read points for the plan layers: [3, 10, d] bf16 (CPU)."""
     captured = {}
     hooks = [
-        decoder_layers(model)[layer].register_forward_hook(
+        (blocks if blocks is not None else decoder_layers(model))[layer].register_forward_hook(
             lambda _m, _i, out, layer=layer: captured.__setitem__(
                 layer, out[0] if isinstance(out, tuple) else out
             )
         )
-        for layer in LAYERS
+        for layer in layers
     ]
     try:
         model(input_ids=torch.tensor([ids], device=model.device), use_cache=False)
@@ -61,7 +65,7 @@ def forward_points(model, ids: list[int], points: dict) -> torch.Tensor:
         for h in hooks:
             h.remove()
     idx = torch.tensor([max(points[p], 0) for p in POINTS], device=model.device)
-    out = torch.stack([captured[layer][0, idx] for layer in LAYERS], dim=1)
+    out = torch.stack([captured[layer][0, idx] for layer in layers], dim=1)
     if points["p2"] < 0:
         out[2] = 0
     return out.to(torch.bfloat16).cpu()

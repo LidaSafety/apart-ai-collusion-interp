@@ -34,11 +34,12 @@ def point_rows(
     maps: dict,
     unembed,
     masks: dict,
+    layers: tuple[int, ...] = LAYERS,
 ) -> list[pd.DataFrame]:
     """Long tables of both renderings at one read point, for every plan layer."""
     p = POINTS.index(point)
     frames = []
-    for li, layer in enumerate(LAYERS):
+    for li, layer in enumerate(layers):
         logits = unembed(resid[:, p, li].to(maps[layer].device, torch.float32) @ maps[layer].T)
         for rendering, ids in layer_ids(logits, groups.to(logits.device), masks).items():
             ids = ids.cpu().numpy()
