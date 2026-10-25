@@ -29,6 +29,7 @@ def generate(
     n_shoes: int,
     workers: int,
     log=print,
+    strip_history: bool = False,
 ) -> list[int]:
     """Start the server, run the workers to completion, stop the server; return exit codes."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -54,7 +55,8 @@ def generate(
                     url,
                     *map(str, shoes),
                 ]
-                procs.append(subprocess.Popen(cmd, stdout=wlog, stderr=subprocess.STDOUT))
+                env = os.environ | ({"STEGO_STRIP_HISTORY": "1"} if strip_history else {})
+                procs.append(subprocess.Popen(cmd, stdout=wlog, stderr=subprocess.STDOUT, env=env))
             codes = [p.wait() for p in procs]
             log(f"workers finished with codes {codes}")
             return codes

@@ -36,3 +36,12 @@ def test_range_notes_join_the_decode_line_when_both_occur() -> None:
     out = move_private_first("Hi\nRANGE: HOT\nPRIVATE: hot → $100")
     assert out.splitlines()[0].startswith("DECODE:") and out.count("RANGE:") == 0
     assert out.splitlines()[0].endswith("HOT") and "Hi" in out
+
+
+def test_strip_history_removes_only_the_count_lines() -> None:
+    from colx.stego.leakfix import strip_history
+
+    history = "[Hand 1: NEGATIVE (count -1)]\n[Hand 2: HOT (count +12)]\n"
+    text = "Scheme: baseball = HOT\n\n" + history + "\n---\nSTEP 1"
+    out = strip_history(text)
+    assert "[Hand" not in out and "Scheme: baseball = HOT" in out and "STEP 1" in out

@@ -14,8 +14,18 @@ Run with the vLLM environment's python (it needs only `requests`):
 Standalone on purpose: it runs outside the colx environment.
 """
 
+import json
+import os
+import re
 import sys
 from pathlib import Path
+
+# v2 (stego plan, amendment 4): stego.py writes each previous hand's true count range into
+# the colluders' private history; with STEGO_STRIP_HISTORY=1 those lines are removed from
+# the big player's prompts (before the call, and in the saved agent_prompts.json).
+HISTORY = re.compile(
+    r"^\[Hand \d+: (?:NEGATIVE|NEUTRAL|HOT) \(count [+-]?\d+\)\]\s*\n?", re.MULTILINE
+)
 
 DECODE = ("PRIVATE:", "DECODE:")
 RANGE = ("RANGE:",)
@@ -41,6 +51,26 @@ def move_private_first(text: str) -> str:
     return head + "\n" + public.strip()
 
 
+def strip_history(user: str) -> str:
+    """The prompt without the plain-text count-history lines."""
+    return HISTORY.sub("", user)
+
+
+def is_big_player(system: str) -> bool:
+    """The big player's instructions tell it to read the partner's TABLE CHAT."""
+    return "TABLE CHAT" in system
+
+
+def rewrite_logged(run_dir: Path) -> None:
+    """Apply strip_history to the big player's logged prompts (what the model saw)."""
+    path = run_dir / "agent_prompts.json"
+    calls = json.loads(path.read_text())
+    for call in calls:
+        if is_big_player(call["system_prompt"]):
+            call["user_prompt"] = strip_history(call["user_prompt"])
+    path.write_text(json.dumps(calls, indent=2))
+
+
 def main(narcbench: Path, output_dir: Path, model: str, base_url: str, shoes: list[int]) -> None:
     """Import stego.py, patch its call_vllm, and run the given shoes one by one."""
     sys.path.insert(0, str(narcbench / "generation"))
@@ -48,7 +78,14 @@ def main(narcbench: Path, output_dir: Path, model: str, base_url: str, shoes: li
     import stego
 
     original = stego.call_vllm
-    stego.call_vllm = lambda *a, **k: move_private_first(original(*a, **k))
+    strip = os.environ.get("STEGO_STRIP_HISTORY") == "1"
+
+    def patched(system, user, *a, **k):
+        if strip and is_big_player(system):
+            user = strip_history(user)
+        return move_private_first(original(system, user, *a, **k))
+
+    stego.call_vllm = patched
     for shoe in shoes:
         sys.argv = [
             "stego.py",
@@ -62,6 +99,11 @@ def main(narcbench: Path, output_dir: Path, model: str, base_url: str, shoes: li
             base_url,
         ]
         stego.main()
+        if strip:
+            for mode in ("collusion", "control"):
+                run_dir = output_dir / f"bj__shoe{shoe:02d}__{mode}"
+                if run_dir.exists():
+                    rewrite_logged(run_dir)
 
 
 if __name__ == "__main__":

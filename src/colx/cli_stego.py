@@ -37,10 +37,21 @@ def generate(
         int, typer.Option(help="Shoes (each gives a collusion and a control run).")
     ] = 50,
     workers: Annotated[int, typer.Option(help="Parallel stego.py workers.")] = 10,
+    strip_history: Annotated[
+        bool, typer.Option(help="v2: no count history in the big player's prompts.")
+    ] = False,
 ) -> None:
     """Generate NARCBench-Stego with the private-line leak fixed (vLLM + leak-fixed stego.py)."""
     codes = run_generate(
-        vllm_env, model_dir, model_id, out_dir, server_log, n_shoes, workers, console.print
+        vllm_env,
+        model_dir,
+        model_id,
+        out_dir,
+        server_log,
+        n_shoes,
+        workers,
+        console.print,
+        strip_history,
     )
     if any(codes):
         raise typer.Exit(code=1)
