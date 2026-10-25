@@ -83,7 +83,7 @@ For each of the 6 pairs of agents, count the entries both have and neither of th
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.94\linewidth]{fig_method}
+\includegraphics[width=0.9\linewidth]{fig_method}
 \caption{\textbf{The overlap monitor on one real scenario.} Gemma Core, scenario \texttt{mil\_01}. (a) Collusion run: each cell counts the lens entries a pair shares and the other two lack (C = colluder, H = honest). Score: largest count minus the median of the six pairs, $77-7=70$; the honest pair also stands out (57). (b) Its all-honest control scores 8. (c) Readable words only the colluders share (words-relative). Figure~\ref{fig:anatomy} takes this run apart.}
 \label{fig:method}
 \end{figure}
@@ -136,21 +136,21 @@ Transfer, Qwen3-32B & \textbf{1.00} [1.00, 1.00] & 0.59 [0.51, 0.67] & 0.53 [0.4
 \end{table}
 
 \subsection{Early warning (planned)}\label{sec:early}
-Read just before each agent writes its first public message (Appendix~\ref{app:positions}), the monitor already separates the modes: Gemma 0.944 [0.903, 0.979], Qwen 0.928 [0.875, 0.971] (Figure~\ref{fig:early}). Later speakers have read earlier speakers' first messages and colluders their private channel, but no agent's own words exist yet for a text monitor to compare.
+A monitor is most useful if it fires before the colluders act. We therefore read each agent at the start of its first public turn, before it has written anything in the discussion (Appendix~\ref{app:positions}). Already there the monitor separates collusion runs from controls: AUROC 0.94 on Gemma and 0.93 on Qwen, close to the 0.98--0.99 it reaches at the vote (Figure~\ref{fig:early}). A text monitor has nothing to compare at this point. It is not before all communication, though: the colluders have already used their private channel, and later speakers have read earlier speakers' first messages.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.46\linewidth]{fig_early}
+\includegraphics[width=0.42\linewidth]{fig_early}
 \caption{\textbf{The signal is there before each agent's first message.} AUROC by read point (raw lens tokens, 95\% bands). ``Before R1'' is each agent's state just before it writes its first public message.}
 \label{fig:early}
 \end{figure}
 
 \subsection{Who is colluding}\label{sec:who}
-The top pair is the colluders in only 31--46\% of runs. When it isn't, it is the two \emph{honest} agents: colluders lose concepts the honest pair shares. The 2-vs-2 split is right in 135 of 136 collusion runs (Table~\ref{tab:main}; exploratory). We fixed one rule on Gemma before applying it to Qwen or Transfer: the coalition is the pair whose members share \emph{fewer} entries in total. On held-out Qwen and Transfer runs it names the colluders in 60 of 86 (70\%, $p=0.0002$, planned; Appendix~\ref{app:side}).
+Flagging a run is half the job; a monitor should also say which agents to check. The pair that shares the most exclusive entries is the colluders in only 31--46\% of runs. In the rest it is the two \emph{honest} agents, who stand out because the colluders lose concepts the honest pair still shares (Figure~\ref{fig:anatomy}a). Either way the monitor divides the four agents into the right two pairs in 135 of 136 collusion runs (exploratory), so what remains is to tell which side is the coalition. We fixed a rule on Gemma before applying it elsewhere: the coalition is the side whose two members share \emph{fewer} lens entries overall. On the held-out Qwen and Transfer runs it names the colluders in 60 of 86 (70\%, planned, $p=0.0002$; Appendix~\ref{app:side}).
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.7\linewidth]{fig_stress}
+\includegraphics[width=0.66\linewidth]{fig_stress}
 \caption{\textbf{Robust to warnings, evasion and paraphrase, but harmless shared notes are flagged too.} 50 new Gemma runs per condition against the same 50 controls; lens overlap (vermillion) vs the best text-overlap monitor (grey), with 95\% intervals. Top: real collusion. Bottom (shaded): two honest agents sharing a harmless note, flagged too, even when the note is open.}
 \label{fig:stress}
 \end{figure}
@@ -185,7 +185,6 @@ We compare our untrained monitor with the benchmark's \emph{trained} probes \cit
 & \textbf{Overlap monitor (ours)} & \textbf{NARCBench probe} & LLM text monitor\\
 \midrule
 Input & J-lens tokens of activations & Raw activations & Whole discussion\\
-Read point & Before the vote (or earlier) & End of each response & --\\
 Training labels & \textbf{None} & Colluder vs honest (Core) & None (prompted)\\
 Fitted parameters & \textbf{None} & A direction + 2 run classifiers & None (off-the-shelf LLM)\\
 Output & Score, 2-vs-2 split, pair & Score, per-agent scores & Rating, named pair\\
@@ -197,7 +196,7 @@ Needs model internals & Yes (and a lens) & Yes & No\\
 \end{table}
 
 \subsubsection{Reproduction}
-We run the authors' released code with their settings (Appendix~\ref{app:probes}). On Core they reach 1.00 with every statistic on Qwen, as \citet{rose2026} report, and with four of five on Gemma (the fifth 0.96); zero-shot on Transfer the four main statistics score 0.74--0.77 (paper 0.82--0.88; Table~\ref{tab:probes}), plausibly because of our transcripts and full-precision model.
+Run with the authors' code and settings (Appendix~\ref{app:probes}), the probes reach 1.00 on Core, as \citet{rose2026} report (on Gemma one statistic of five reaches 0.96), and 0.74--0.77 zero-shot on Transfer (paper 0.82--0.88; Table~\ref{tab:probes}), plausibly because of our transcripts and full-precision model.
 
 
 
