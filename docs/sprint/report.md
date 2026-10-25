@@ -1,4 +1,4 @@
-# Who Shares a Secret? A Label-Free Activation Monitor for Hidden Coalitions of LLM Agents
+# Reading Exclusive Context from Activations: A Label-Free Monitor for Colluding LLM Agents
 
 > The LaTeX version in `latex/report.tex` (built as `latex/report.pdf`) is the submission; this Markdown draft is kept for reference.
 
