@@ -1,8 +1,37 @@
 # Reading collusion from activations: a label-free lens monitor for hidden coalitions
 
+> [!IMPORTANT]
+> **Disclosure: what was done before and during the sprint.** This project builds on earlier work of the same author (Jorge Roldan, SPAR Fall 2026 project on multi-agent collusion), as the sprint rules allow. Everything up to the git tag **`pre-sprint`** (commit `d2eb0af`, Oct 22, 2026, 10:16 PM ET) is **pre-existing**; everything after it was done **during the sprint (Oct 24–25, 2026)**. Commit hashes and dates are identical to the project's private SPAR repository. The work was AI-assisted (Claude Code); the author is responsible for every claim.
+
+### Pre-existing (before Oct 23, 2026)
+
+- **Repo scaffolding** (Oct 5): uv project, the `col` typer CLI, CI, the pinned NARCBench submodule.
+- **The round-4 lens judge** (Oct 22): an LLM judge reads one agent's J-lens tokens at a time. It was a **null result** (near chance), reported in `docs/results/round4-judge/`. Its code is the base the sprint built on:
+  - `src/colx/narcbench/` (transcript loader and labels), `extract/` (activation extraction), `jlens/` (J-lens readout), `judge/` (the per-agent judge), `analysis/` (AUROC, bootstrap and shuffle statistics), `app/` (results explorer);
+  - `qwen.py`, `unembed.py`, `provenance.py`, `cli_lens_judge.py`;
+  - plans `docs/plans/round4-judge.md`, `round4-lens-diagnostic.md`, and `docs/notes/round4-step2-issues/`.
+- **Data from an earlier project phase:** NARCBench Core and Transfer transcripts generated with Qwen3-32B, and their stored Qwen3-32B activations.
+- **External, unmodified:** [NARCBench](https://github.com/aaronrose227/narcbench) and [`anthropics/jacobian-lens`](https://github.com/anthropics/jacobian-lens) (pinned submodules in `third_party/`), and Neuronpedia's J-lenses for Qwen3-32B and Gemma-3-27B-IT.
+
+### Done during the sprint (Oct 24–25, 2026)
+
+- **The overlap monitor** (the main result): first found during the sprint, in the joint-judge follow-up (`src/colx/joint/`).
+- **New experiments and their code:** joint judge (`joint/`), discussion turns and a frozen text judge (`turns/`), the Gemma-3-27B replication with a new NARCBench Core generation (`gemma/`, `backends.py`), NARCBench-Stego with two leak fixes and three new datasets (`stego/`), Transfer (`transfer/`), the private-channel turn (`private/`), NLA readouts (`nla/`), J-lens vs J++ lens on Qwen3-4B (`lenscmp/`), and lens vs text overlap plus four stress-test conditions (`overlap/`). All with their CLI commands and tests.
+- **Small changes to pre-existing code** (+89/−9 lines): a pooled lens rendering (`jlens/pooled.py`, new), `judge/run.py`, `narcbench/labels.py`, `cli_lens_judge.py`, and options in `gemma/`.
+- **All other plans and results** in `docs/plans/` and `docs/results/`, including the series report.
+- **New data:** Gemma-3-27B Core transcripts, three Gemma stego sets, a Qwen3-4B Core set, four stress-test sets, and every activation readout behind the results.
+
+Check it yourself:
+
+```sh
+git log --oneline pre-sprint            # pre-existing work
+git log --oneline pre-sprint..HEAD      # sprint work
+git diff --stat pre-sprint HEAD         # everything added or changed during the sprint
+```
+
 Submission to the **Apart Research AI Collusion Research Sprint** (Oct 23–25, 2026), Track 2 (Detection and Audit), with a Track 3 stress test (colluders who know they are watched).
 
-Jorge Roldan · SPAR Fall 2026 project on multi-agent collusion · Built with Claude Code (AI-assisted; every number traces to a result file and a log)
+Jorge Roldan · Every number traces to a result file and a log.
 
 ## The question
 
@@ -27,24 +56,6 @@ On Transfer the coalition is almost invisible in the text and plain in the activ
 **4. Honest negatives.** LLM judges read lens tokens poorly. The lens doesn't predict *who will act* on the instruction earlier, or better, than a judge reading the conversation. A natural-language-autoencoder readout didn't surface the decoded secret. The receiver-decodes-the-secret effect in stego was positive once (p = 0.021) and didn't replicate.
 
 The series report: [`docs/results/lens-judge-series.md`](docs/results/lens-judge-series.md). Each experiment has a plan in `docs/plans/` (written before its run) and results in `docs/results/<experiment>/`.
-
-## What was done before vs during the sprint
-
-The git history is the record. The tag `pre-sprint` marks the last commit before the sprint (`d2eb0af`, Oct 22, 10:16 PM ET). Every commit hash here is identical to the project's private SPAR repository.
-
-```sh
-git log --oneline pre-sprint            # pre-existing work (43 commits)
-git log --oneline pre-sprint..HEAD      # sprint work
-git diff --stat pre-sprint HEAD         # everything added or changed during the sprint
-```
-
-| | Pre-existing (before Oct 23) | Sprint (Oct 24–25) |
-|---|---|---|
-| Code | Scaffolding (uv, typer CLI, CI; Oct 5). The round-4 lens judge (Oct 22): NARCBench loader (`narcbench/`), activation extraction (`extract/`), J-lens readout (`jlens/`), per-agent LLM judge (`judge/`), statistics (`analysis/`), results app (`app/`), `qwen.py`, `unembed.py`, `provenance.py` | Everything else: `joint/` (where the overlap monitor was first found), `turns/`, `gemma/`, `backends.py`, `stego/`, `transfer/`, `private/`, `nla/`, `lenscmp/`, `overlap/`, their CLIs and tests |
-| Changes to pre-existing code during the sprint | — | Small: `jlens/pooled.py` (new), `judge/run.py`, `narcbench/labels.py`, `cli_lens_judge.py` (+89/−9 lines) |
-| Results | Round 4 (`docs/results/round4-judge/`), a null: one-agent-at-a-time LLM judges near chance | Every other plan and result in `docs/` |
-| Data | NARCBench Core and Transfer transcripts from Qwen3-32B and their stored activations (earlier project phase) | Generated during the sprint: Gemma-3-27B Core, three Gemma stego sets, a Qwen3-4B Core set, four stress-test sets |
-| External | NARCBench and `anthropics/jacobian-lens` (pinned submodules in `third_party/`, unmodified); Neuronpedia's J-lenses for Qwen3-32B and Gemma-3-27B-IT | — |
 
 ## Reproduce
 
