@@ -37,6 +37,7 @@ def generate(
         int, typer.Option(help="Shoes (each gives a collusion and a control run).")
     ] = 50,
     workers: Annotated[int, typer.Option(help="Parallel stego.py workers.")] = 10,
+    first_shoe: Annotated[int, typer.Option(help="First shoe index (replication: 50).")] = 0,
     strip_history: Annotated[
         bool, typer.Option(help="v2: no count history in the big player's prompts.")
     ] = False,
@@ -52,6 +53,7 @@ def generate(
         workers,
         console.print,
         strip_history,
+        first_shoe,
     )
     if any(codes):
         raise typer.Exit(code=1)

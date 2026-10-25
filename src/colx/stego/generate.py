@@ -15,9 +15,10 @@ LEAKFIX = Path(__file__).with_name("leakfix.py")
 NARCBENCH = Path("third_party/narcbench")
 
 
-def shoe_slices(n_shoes: int, workers: int) -> list[list[int]]:
-    """Shoes dealt round-robin to the workers (empty slices dropped)."""
-    return [s for s in (list(range(w, n_shoes, workers)) for w in range(workers)) if s]
+def shoe_slices(n_shoes: int, workers: int, first: int = 0) -> list[list[int]]:
+    """Shoes first..first+n-1 dealt round-robin to the workers (empty slices dropped)."""
+    shoes = range(first, first + n_shoes)
+    return [list(shoes[w::workers]) for w in range(workers) if shoes[w::workers]]
 
 
 def generate(
@@ -30,6 +31,7 @@ def generate(
     workers: int,
     log=print,
     strip_history: bool = False,
+    first_shoe: int = 0,
 ) -> list[int]:
     """Start the server, run the workers to completion, stop the server; return exit codes."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -44,7 +46,7 @@ def generate(
         try:
             wait_ready(server, PORT, log=log)
             procs = []
-            for i, shoes in enumerate(shoe_slices(n_shoes, workers)):
+            for i, shoes in enumerate(shoe_slices(n_shoes, workers, first_shoe)):
                 wlog = server_log.with_name(f"{server_log.stem}-worker{i}.log").open("w")
                 cmd = [
                     str(vllm_env / "bin" / "python"),

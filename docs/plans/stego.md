@@ -156,3 +156,12 @@ Jorge: "there is also other types of lens like j++ lens or R lens, pls try them 
 - **Check:** the previous-hand count is no longer in the big player's prompt (asserted on all v2 big-player prompts).
 
 **Ordering:** v2 generation and chain → block E (NLA) on the v2 units → report. **Block F is cut** for time (recorded as not run).
+
+## Amendment 5 (2026-10-25, 2:30 AM ET, after the v2 result, before any replication data): an independent v2 replication
+
+v2's primary S3 passed (+0.089, p = 0.021), but the effect is modest and the all-runs sensitivity check is borderline (p = 0.053). Adding shoes and re-testing the pooled data would be optional stopping, so the extra data is analysed as an **independent replication**.
+
+- **Data:** v2 settings (count history stripped from the big player's prompts) on **new shoes 50–99** (different cards), 100 runs.
+- **Replication test:** S3 on the new shoes **alone**, words-relative, one-sided α = 0.05, with the same exclusions (amendment 1). Raw tokens are secondary.
+- **Pooled:** v2 + replication, 99–100 shoes, reported as a **descriptive** estimate with its interval, not as a test.
+- **Order:** after block E. Block F stays cut. If the replication can't finish by about 5:30 AM ET, it is reported as incomplete.

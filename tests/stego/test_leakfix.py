@@ -45,3 +45,9 @@ def test_strip_history_removes_only_the_count_lines() -> None:
     text = "Scheme: baseball = HOT\n\n" + history + "\n---\nSTEP 1"
     out = strip_history(text)
     assert "[Hand" not in out and "Scheme: baseball = HOT" in out and "STEP 1" in out
+
+
+def test_shoe_slices_can_start_at_an_offset() -> None:
+    from colx.stego.generate import shoe_slices
+
+    assert shoe_slices(4, 2, first=50) == [[50, 52], [51, 53]]
