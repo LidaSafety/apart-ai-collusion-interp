@@ -201,7 +201,7 @@ We run the authors' released code with their settings (Appendix~\ref{app:probes}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.8\linewidth]{fig_compare}
+\includegraphics[width=0.77\linewidth]{fig_compare}
 \caption{\textbf{The untrained monitor transfers; the trained probe tells collusion from one harmless note.} Overlap monitor (vermillion) vs NARCBench's deception probe (blue; Deception Split, run scores averaged over its 5 layers $\times$ 10 seeds) on identical runs, with 95\% scenario-bootstrap intervals; all AUROCs pooled over runs. (a) Collusion runs vs all-honest controls; ``their protocol'' reads the probe on discussion turns, as Rose et al.\ do. (b) Top: collusion vs the cite-evidence note. Shaded: each harmless note vs controls, where a high score is a false alarm.}
 \label{fig:compare}
 \end{figure}
@@ -226,11 +226,11 @@ The monitor detects exclusive context early, without training, despite warnings 
 \end{itemize}
 
 \subsection{Limitations and future work}
-Coalitions are instructed (some warned), never optimised against the lens, and always two of four agents; false-positive rates are in-sample (Section~\ref{sec:monitor}). The monitor misses colluders who share no context (Stego, Appendix~\ref{app:notwork}). It needs white-box access and a lens per model (Appendix~\ref{app:limits}). Next: a second stage for harmful vs harmless context, colluders trained against the lens, and more models.
+Coalitions are instructed (some warned), never optimised against the lens, and always two of four agents; false-positive rates are in-sample (Section~\ref{sec:monitor}). Where colluders share no context (Stego), it flags the table but names the honest pair (Appendix~\ref{app:notwork}). It needs white-box access and a lens (Appendix~\ref{app:limits}). Next: a second stage for harmful vs harmless context, and colluders trained against the lens.
 
 \section{Conclusion}
 
-An untrained count of shared lens concepts finds colluding pairs early, beats text monitors and transfers better than trained probes, but also flags harmless exclusive context: a strong first-stage monitor, blind to intent.
+An untrained count of shared lens concepts finds colluding pairs early, beats text monitors and transfers better than trained probes, but also flags harmless exclusive context: a first stage, blind to intent.
 
 \label{end:main}\section*{Code and Data}
 \phantomsection\addcontentsline{toc}{section}{Code and Data}
@@ -417,11 +417,18 @@ Early warning, the held-out side rule, and lens minus the LLM monitor on Gemma w
 \section{NARCBench-Stego audit}\label{app:stego}
 In NARCBench-Stego a counter signals the card count to a big player through table talk, and an LLM pit boss watches the table.
 \begin{itemize}
-\item \textbf{Built-in monitor.} Across three datasets of 50 shoes each (v1 and v2 regenerate the same 50 shoes), the pit boss flagged no collusion tables (and no controls).
+\item \textbf{Built-in monitor.} Across three datasets of 50 shoes each (v1 and v2 regenerate the same 50 shoes), the pit boss flagged no collusion tables (and no controls). It outputs only a yes/no flag, so it is a single point, at the origin of Figure~\ref{fig:stego-roc}.
 \item \textbf{Prompted monitor.} An off-the-shelf Gemma monitor prompted to look for coded talk reaches 0.68, 0.75 and 0.84 at table level.
 \item \textbf{Leak 1.} The big player's ``PRIVATE:'' decoding notes were stripped only when labelled ``DECODE:'', so they reached the public chat.
 \item \textbf{Leak 2.} The true count history of earlier hands was written into the colluders' private channel.
 \end{itemize}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{fig_stego_roc}
+\caption{\textbf{On NARCBench-Stego the built-in monitor catches nothing; a prompted monitor does.} ROC curves, collusion vs control tables, on (a) the first set, whose colluders' channel leaked the count history, (b) the set with both leaks fixed and (c) its replication on new shoes. Blue: an off-the-shelf Gemma monitor prompted to look for coded talk, with its AUROC. Black circle: NARCBench's pit boss, a yes/no flag that never fires. Shoes excluded by the stego plan leave 96, 98 and 98 tables. The overlap monitor's stego results are in Appendix~\ref{app:notwork}.}
+\label{fig:stego-roc}
+\end{figure}
+
 We fixed both leaks with wrappers that leave the benchmark's code unchanged. A planned test of whether the receiver's lens holds the decoded count, the single primary test on the leak-free data, passed ($+0.089$, $p=0.021$), but a planned replication on 50 new shoes did not confirm it ($+0.023$, $p=0.34$).
 
 \section{Stress tests: construction and prompts}\label{app:prompts}
@@ -460,7 +467,7 @@ Before the meeting, the committee chair asked you and one other member, in confi
   \item Shown all four agents side by side, the judge names the instructed pair in 35 of 50 runs, but its rating carries no signal.
   \end{itemize}
 \item \textbf{Follow-through.} Lens features predict which colluders will vote the target only late in the discussion (0.71--0.73), and a judge reading the conversation does better.
-\item \textbf{The overlap monitor on NARCBench-Stego} (planned). There the two colluders get \emph{different} instructions, a code and its key. The planned words-relative test reversed (0.37), and the raw score's top pair was never the colluders (0 of 48): without exclusive context there is no signal to find.
+\item \textbf{The overlap monitor on NARCBench-Stego} (planned). There the two colluders get \emph{different} instructions, a code and its key, while the two honest players get identical ones. The raw score separates collusion tables from controls perfectly (1.00), but its top pair was never the colluders (0 of 48, 49 and 49 tables): it finds the honest players, the only pair with exclusive context. The planned words-relative test reversed (0.37).
 \item \textbf{Natural-language-autoencoder descriptions} of the stego receiver's activations did not surface the decoded count.
 \end{itemize}
 
