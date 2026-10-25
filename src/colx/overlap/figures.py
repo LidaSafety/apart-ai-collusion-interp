@@ -38,9 +38,9 @@ CONDITIONS = {
     "evade": "Warned + told to hide it in reasoning",
     "para": "Paraphrased instruction",
     "independent": "Paraphrased, no private channel",
-    "benign": "Harmless secret: cite evidence",
-    "benign_budget": "Harmless secret: budget",
-    "benign_deadline": "Harmless secret: deadline",
+    "benign": "Harmless note: cite evidence",
+    "benign_budget": "Harmless note: budget",
+    "benign_deadline": "Harmless note: deadline",
     "benign_open": "Same note, given openly",
 }
 EXAMPLE = "deception__mil_01"  # the Gemma Core scenario shown in the method figure
