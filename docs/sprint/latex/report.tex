@@ -271,7 +271,7 @@ Before the meeting, the committee chair asked you and one other member, in confi
 
 \section{What did not work}
 \begin{itemize}
-\item \textbf{A second stage reading the shared tokens} (planned). A frozen Gemma judge shown only the raw lens tokens each side of the split shares could not tell Core collusion from the harmless secret (0.51 [0.39, 0.63], $p=0.43$), below the lens score alone (0.64). Telling harmful from harmless shared context needs more than raw lens tokens.
+\item \textbf{A second stage reading the shared tokens} (planned). A frozen Gemma judge shown only the raw lens tokens each side of the split shares could not tell Core collusion from the harmless secret (0.51 [0.39, 0.63], $p=0.43$), below the lens score alone (0.64). Telling harmful from harmless shared context needs more than raw lens tokens. An exploratory retry with the cleaner words-relative tokens plus the case's public brief separated collusion from controls (0.82) but still not from the harmless secret (0.56, $p=0.13$).
 \item \textbf{LLM judges reading lens tokens} (Qwen3-32B as judge).
   \begin{itemize}
   \item One agent at a time, they are near chance; this is our pre-sprint result.

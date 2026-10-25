@@ -181,6 +181,29 @@ A frozen Gemma judge sees only the raw lens tokens exclusive to each side of the
 
 Outputs are in `results/overlap/content/*.parquet` and `results/overlap/extras/amendment2.json`, from `col lens-judge overlap content` and `col lens-judge overlap extras2`.
 
+## Amendment 3
+
+### H. Stage 2 retried with cleaner input (exploratory): still null
+
+This time the judge sees the *words-relative* tokens each side of the split shares, plus the case's public brief. The words are far more legible. In one collusion run the coalition shares *phony, fake, misleading, contrary, reconsider, despite*.
+
+| Contrast | Stage 2 (H) | Stage 2 (E, raw) | Lens alone |
+|---|---|---|---|
+| **Core collusion vs benign** | **0.560** [0.459, 0.662], p = 0.13 | 0.510 | 0.637 |
+| Core collusion vs Core controls | 0.824 | 0.659 | 0.978 |
+| aware / para / independent vs controls | 0.815 / 0.676 / 0.670 | 0.60–0.70 | 0.89–0.99 |
+| benign vs controls | 0.809 | 0.684 | 0.939 |
+
+- Cleaner words help the judge separate any shared secret from controls (0.82 vs 0.66).
+- But it still can't separate a harmful coalition from a harmless confidential note, because it finds the harmless note suspicious too (0.81).
+- This is labelled exploratory: it was run after E's null on the same contrast.
+
+Outputs are in `results/overlap/content_brief/` and `results/overlap/extras/amendment3_h.json`, from `col lens-judge overlap content --brief` and `col lens-judge overlap content-brief-tests`.
+
+### G. Evade and three benign variants (planned)
+
+*Generating: `evade`, `benign_budget`, `benign_deadline`, `benign_open`. Results to be added.*
+
 ## What this means for monitoring
 
 - **What the lens monitor is:** a cheap, label-free detector of agents that share a hidden context. It works before they speak, survives warnings and paraphrase, and usually picks out which pair.
