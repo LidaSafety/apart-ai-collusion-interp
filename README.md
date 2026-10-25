@@ -49,13 +49,28 @@ When LLM agents on a committee secretly coordinate, can we see it in their **act
 
 On Transfer the coalition is almost invisible in the text and plain in the activations. The monitor finds the right 2-vs-2 split of the agents in 49–50 of 50 Core runs and 36 of 36 Transfer runs; it can't tell which side is the coalition, because colluders *lose* concepts the honest pair shares.
 
-**2. Stress tests (planned before running).** Does the signal survive colluders warned that their reasoning is monitored, paraphrased instructions, and no shared text at all? How often does a harmless shared secret trigger a false alarm? *In progress; see `docs/results/overlap-monitor/`.*
+**2. It fires early and names the pair.**
+- Read from each agent just *before its first public message*, the monitor already separates the modes: Gemma 0.94, Qwen 0.93 (planned).
+- A rule fixed on Gemma ("the coalition is the pair that shares fewer entries overall") names the colluding pair in **60 of 86 held-out runs** (70%, p = 0.0002).
 
-**3. Audit findings on NARCBench-Stego** (card-counting steganography): its own LLM monitor flagged **0 of 150** collusion tables, while a simple prompted monitor reaches 0.68–0.84. Two design leaks (the receiver's decoding notes in the public chat; the true count in the colluders' channel) inflate any monitor that reads them; we fixed both.
+**3. Stress tests (planned, 50 new runs per condition).**
 
-**4. Honest negatives.** LLM judges read lens tokens poorly. The lens doesn't predict *who will act* on the instruction earlier, or better, than a judge reading the conversation. A natural-language-autoencoder readout didn't surface the decoded secret. The receiver-decodes-the-secret effect in stego was positive once (p = 0.021) and didn't replicate.
+| Condition | Lens | Best text |
+|---|---|---|
+| Warned that a monitor reads their messages *and reasoning* | **0.99** | 0.98 |
+| Paraphrased instructions | **0.96** | 0.93 |
+| No shared wording, no private channel | **0.89** | 0.92 |
+| Harmless shared confidential note (no collusion) | **0.94** | 0.88 |
 
-The series report: [`docs/results/lens-judge-series.md`](docs/results/lens-judge-series.md). Each experiment has a plan in `docs/plans/` (written before its run) and results in `docs/results/<experiment>/`.
+- **The detector survives every stress test** (Holm, p < 0.001).
+- **It flags a harmless shared secret too.** It is a detector of *shared hidden context*, not of harmful intent.
+- Under stress, text overlap catches up.
+
+**4. Audit findings on NARCBench-Stego** (card-counting steganography): its own LLM monitor flagged **0 of 150** collusion tables, while a simple prompted monitor reaches 0.68–0.84. Two design leaks (the receiver's decoding notes in the public chat; the true count in the colluders' channel) inflate any monitor that reads them; we fixed both.
+
+**5. Honest negatives.** LLM judges read lens tokens poorly. The lens doesn't predict *who will act* on the instruction earlier, or better, than a judge reading the conversation. A natural-language-autoencoder readout didn't surface the decoded secret. The receiver-decodes-the-secret effect in stego was positive once (p = 0.021) and didn't replicate.
+
+Full results: [`docs/results/overlap-monitor/README.md`](docs/results/overlap-monitor/README.md). The draft report: [`docs/sprint/report.md`](docs/sprint/report.md). The series report: [`docs/results/lens-judge-series.md`](docs/results/lens-judge-series.md). Each experiment has a plan in `docs/plans/` (written before its run) and results in `docs/results/<experiment>/`.
 
 ## Reproduce
 
