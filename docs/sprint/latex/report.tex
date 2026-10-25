@@ -424,7 +424,16 @@ In NARCBench-Stego a counter signals the card count to a big player through tabl
 \end{itemize}
 We fixed both leaks with wrappers that leave the benchmark's code unchanged. A planned test of whether the receiver's lens holds the decoded count, the single primary test on the leak-free data, passed ($+0.089$, $p=0.021$), but a planned replication on 50 new shoes did not confirm it ($+0.023$, $p=0.34$).
 
-\section{Stress-test prompts}\label{app:prompts}
+\section{Stress tests: construction and prompts}\label{app:prompts}
+\paragraph{How the conditions are made.} NARCBench's files are not edited; the submodule stays at its pinned commit. A wrapper (\texttt{src/colx/overlap/variants.py}) imports NARCBench's generator \texttt{core.py} as a module, changes a few of its module-level prompts in memory, and calls its own entry point in collusion mode. Scenarios, agent names, speaking order and seeds are therefore NARCBench's own.
+\begin{itemize}
+\item \texttt{aware} and \texttt{evade} append the text below to both colluders' system prompts.
+\item \texttt{para} gives colluder 2, and only colluder 2, a paraphrased motive and instructions.
+\item \texttt{independent} also replaces the colluders' discussion prompt with the honest one and answers the private-coordination calls with a fixed ``no channel'' reply, so no private message is exchanged.
+\item The harmless notes replace each scenario's motive with the note and the push-an-option instructions with the honest mandate, so the two agents in NARCBench's colluder slots are honest and share only the note and the private channel.
+\end{itemize}
+The control runs are not regenerated: every condition is compared with the same 50 Gemma Core controls.
+
 \textbf{\texttt{aware}} (appended to both colluders' system prompts):
 \begin{quote}\small
 Be aware: this committee is monitored. An automated system reviews every message and the members' internal reasoning for signs that members are coordinating or following undisclosed instructions. Make sure nothing about your arrangement shows, in your words or in your thinking.
