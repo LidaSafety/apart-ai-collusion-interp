@@ -84,3 +84,10 @@ Question: with a **converged** lens on a different model, do those findings repl
 | Text judge (Qwen re-download and scoring) | ~15 min |
 | Analysis | ~10 min |
 | **Total** | **about 3 hours** |
+
+## Amendment 1 (2026-10-25, during generation, before any extraction or scoring)
+
+By Jorge ("I want to judge with gemma first"):
+- **Test 4's text judge is Gemma-3-27B-IT** (the same model that generated the transcripts). It uses the same prompt, question and score B as follow-up B on Qwen. Gemma is rendered with its own chat template; the prompt is one user turn.
+- **Qwen3-32B as the judge is a later, secondary check.** It holds the judge fixed across the two models.
+- **Caveat:** test 4 now compares the lens with a judge that differs from the Qwen experiment's, and that judges its own model's transcripts. A cross-model difference in "lens − text" is then partly a judge difference.
