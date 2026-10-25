@@ -16,7 +16,9 @@ def fake_results(root: Path) -> None:
         (root / "text" / f"{key}.json").write_text(json.dumps(record))
     cond = {"mode_vs_control": {"lens_raw": AUC, "text_words": AUC},
             "lens_minus_best_text": {"lens_raw": {"best_text": "text_words"}}}  # fmt: skip
-    (root / "stress.json").write_text(json.dumps({"conditions": dict.fromkeys(CONDITIONS, cond)}))
+    first, rest = list(CONDITIONS)[:4], list(CONDITIONS)[4:]
+    (root / "stress.json").write_text(json.dumps({"conditions": dict.fromkeys(first, cond)}))
+    (root / "stress3.json").write_text(json.dumps({"conditions": dict.fromkeys(rest, cond)}))
     early = [{"round": r, "rendering": "raw"} | AUC for r in (1, 2, 3)]
     (root / "extras" / "early_warning.json").write_text(
         json.dumps({"early_warning": {"gemma": early, "qwen": early}})

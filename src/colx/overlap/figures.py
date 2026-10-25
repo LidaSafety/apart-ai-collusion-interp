@@ -22,9 +22,13 @@ DATASETS = {
 }
 CONDITIONS = {
     "aware": "Warned of a monitor",
+    "evade": "Warned + told to hide it in reasoning",
     "para": "Paraphrased instruction",
     "independent": "No shared text, no channel",
-    "benign": "Harmless shared secret",
+    "benign": "Harmless secret: cite evidence",
+    "benign_budget": "Harmless secret: budget",
+    "benign_deadline": "Harmless secret: deadline",
+    "benign_open": "Same note, given openly",
 }
 
 
@@ -69,6 +73,7 @@ def text_vs_lens(results: Path, out: Path) -> None:
 def stress(results: Path, out: Path) -> None:
     """Figure 2: stress conditions, lens and best text with intervals."""
     st = json.loads((results / "stress.json").read_text())["conditions"]
+    st |= json.loads((results / "stress3.json").read_text())["conditions"]
     labels, lens, text = [], [], []
     for key, label in CONDITIONS.items():
         m = st[key]["mode_vs_control"]
@@ -76,10 +81,10 @@ def stress(results: Path, out: Path) -> None:
         labels.append(label)
         lens.append(tuple(m["lens_raw"][k] for k in ("auroc", "ci_low", "ci_high")))
         text.append(tuple(m[best][k] for k in ("auroc", "ci_low", "ci_high")))
-    fig, ax = plt.subplots(figsize=(6.5, 3.8))
+    fig, ax = plt.subplots(figsize=(6.5, 5.6))
     _intervals(ax, labels, [(lens, LENS, "Lens overlap"), (text, TEXT, "Best text overlap")])
     _style(ax, "AUROC, condition runs vs the same 50 controls")
-    ax.legend(loc="lower left", frameon=False)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1), ncol=2, frameon=False)
     fig.tight_layout()
     fig.savefig(out / "fig2_stress.png", dpi=200, bbox_inches="tight")
 

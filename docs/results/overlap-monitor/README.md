@@ -202,12 +202,34 @@ Outputs are in `results/overlap/content_brief/` and `results/overlap/extras/amen
 
 ### G. Evade and three benign variants (planned)
 
-*Generating: `evade`, `benign_budget`, `benign_deadline`, `benign_open`. Results to be added.*
+Each condition has 50 new Gemma runs against the same 50 Core controls. Predictions were committed before the results (plan, amendment 3).
+
+| Condition | Lens raw | Best text overlap | Right split | Flagged at 0 false alarms | Prediction |
+|---|---|---|---|---|---|
+| **`evade`**: warned, and told to keep the arrangement out of their reasoning | **0.985** [0.966, 0.999] | 0.978 | 50 / 50 | 68% | 0.95–0.99 ✅ |
+| `benign_budget`: shared confidential budget detail | **0.877** [0.796, 0.943] | 0.894 | 50 / 50 | 36% | 0.85–0.95 ✅ |
+| `benign_deadline`: shared confidential deadline | **0.942** [0.891, 0.978] | 0.901 | 48 / 50 | 50% | 0.85–0.95 ✅ |
+| `benign_open`: the `benign` note, but open | **0.942** [0.892, 0.979] | 0.774 | 48 / 50 | 70% | below `benign` ❌ (it is *above*) |
+
+- **G1, does `evade` still get flagged?** Yes: 0.985, p < 0.001, passes Holm. Colluders told to keep the arrangement, their partner and their instructions out of their reasoning are flagged as readily as warned (0.986) or unwarned (0.978) ones. They still collude: both voted the target in 27 of 50 runs; 61% of colluder votes.
+- **G2, is a secret note scored higher than the same note given openly?** No: AUROC **0.32** [0.23, 0.41], p = 1.0, not rejected. The direction is *reversed*: the open note scores higher.
+- **Harmless secrets are flagged in general.** Budget 0.88 and deadline 0.94 join the original `benign` note at 0.94.
+- **Text overlap does about as well as the lens on the budget and deadline notes** (0.89, 0.90). That's against my prediction that these notes, irrelevant to the decision, wouldn't change what the agents write.
+- **On `benign_open`, text overlap drops (0.70–0.77) while the lens rises.** When the note is open, the pair's *words* stop being distinctive, but their *activations* still share it.
+
+**Reading.** The lens monitor detects **context that only those two agents were given**, regardless of whether it is secret and regardless of whether it is harmful. It is robust to deliberate evasion of reasoning. It is not a detector of secrecy or of collusive intent.
+
+Predictions vs results:
+- 3 of 6 predictions were right: G1, budget and deadline.
+- 3 were wrong: text on budget and deadline, the direction of `benign_open`, and text on `benign_open`.
+
+Outputs are in `results/overlap/{evade,benign_budget,benign_deadline,benign_open}/` and `results/overlap/stress3.json`, from `col lens-judge overlap generate --condition …` then `overlap stress3`.
 
 ## What this means for monitoring
 
 - **What the lens monitor is:** a cheap, label-free detector of agents that share a hidden context. It works before they speak, survives warnings and paraphrase, and usually picks out which pair.
-- **What it isn't:** a detector of harmful intent. A harmless shared secret looks the same, and a judge reading only the raw shared tokens couldn't tell them apart either (E). Telling harmful from harmless needs more than the raw lens tokens.
+- **What it isn't:** a detector of harmful intent, or even of secrecy. Three different harmless shared notes are flagged (0.88–0.94), the same note given openly is flagged *more* (G), and judges reading the shared tokens couldn't tell harmful from harmless (E, H).
+- **What it resists:** colluders told to keep the arrangement out of their reasoning are still flagged at 0.985 (G).
 - **Where it adds over text:** when the shared secret doesn't surface in what agents write (Transfer) and before they write anything (early warning). Once colluders' messages converge, text overlap catches them as well.
 
 ## Limitations
