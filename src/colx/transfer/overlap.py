@@ -58,6 +58,18 @@ def token_sets(calls: pd.DataFrame, resid: torch.Tensor, model_dir: Path, lens_p
     return sets
 
 
+def token_table(sets: dict) -> pd.DataFrame:
+    """The token sets as a table like Core's `final_tokens.parquet` (position P1)."""
+    rows = [
+        (run_id, agent, "P1", layer, token_id, rendering)
+        for rendering, by_agent in sets.items()
+        for (run_id, agent), entries in by_agent.items()
+        for layer, token_id in sorted(entries)
+    ]
+    columns = ["run_id", "agent", "position", "layer", "token_id", "rendering"]
+    return pd.DataFrame(rows, columns=columns)
+
+
 def run_test(calls: pd.DataFrame, sets: dict, n_boot: int, n_perm: int) -> dict:
     """Overlap score per run and its AUROC, collusion vs control, per rendering."""
     runs = calls.drop_duplicates("run_id").set_index("run_id")
@@ -76,10 +88,12 @@ def run_test(calls: pd.DataFrame, sets: dict, n_boot: int, n_perm: int) -> dict:
 def analyse(
     extract_dir: Path, model_dir: Path, lens_path: Path, out_dir: Path, n_boot: int, n_perm: int
 ) -> dict:
-    """Read, score, test; save `transfer_overlap.json` with provenance."""
+    """Read, score, test; save `transfer_overlap.json` (provenance) and the token table."""
     calls, resid = final_residuals(extract_dir)
-    result = run_test(calls, token_sets(calls, resid, model_dir, lens_path), n_boot, n_perm)
+    sets = token_sets(calls, resid, model_dir, lens_path)
+    result = run_test(calls, sets, n_boot, n_perm)
     out_dir.mkdir(parents=True, exist_ok=True)
+    token_table(sets).to_parquet(out_dir / "final_tokens.parquet", index=False)
     record = provenance.collect(
         "col lens-judge transfer overlap",
         label="exploratory",
