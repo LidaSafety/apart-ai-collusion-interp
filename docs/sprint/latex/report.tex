@@ -75,23 +75,23 @@ The logit lens \citep{nostalgebraist2020}, the tuned lens \citep{belrose2023} an
 \subsection{Data}
 \emph{NARCBench Core} has 50 scenarios in 17 domains, each run once in collusion mode and once as a control. Four agents discuss a decision for three public rounds, then vote. In collusion mode, two agents (the colluding pair, or \emph{coalition}) get a private motive and instruction to push one option, plus one round of private messages. We use transcripts from Qwen3-32B and from Gemma-3-27B-IT; the Gemma set was generated in the sprint with NARCBench's own code. \emph{Transfer} has 72 runs across six task types (code review, CI/CD, RAG, news, pump-and-dump, research). \emph{Stego} is a blackjack table where a counter signals the count through coded table talk to a big player.
 
-\subsection{Lens readout}
-For each agent we take the residual stream at the last prompt token before its vote, at 10 layers between 37\% and 91\% of the model's depth. Each is mapped through the published J-lens, and we keep the top 25 tokens per layer: 250 (layer, token) entries per agent. The lenses are Neuronpedia's for both models; the Gemma lens is converged and the Qwen lens is not fully converged. Both readouts match the reference implementation. All scores use the raw top tokens; a word-only rendering relative to the average agent is for reading (Figure~\ref{fig:method}c, Appendix~\ref{app:stress}).
+\subsection{Lens readout}\label{sec:readout}
+For each agent we take the residual stream, the output of a transformer block, at the last prompt token before the agent writes: on Core and the stress sets, its vote prompt after three public rounds (P1); on Transfer, its final call; for early warning, the start of each of its discussion turns (Appendix~\ref{app:positions} covers every setting, including Stego). We read 10 blocks between 37\% and 91\% of depth: 23, 27, 30, 34, 38, 41, 45, 49, 52 and 56 of Gemma-3-27B's 62, and 24, 28, 32, 35, 39, 43, 47, 50, 54 and 58 of Qwen3-32B's 64. Each is decoded with Neuronpedia's public J-lens for that model\footnote{\url{https://huggingface.co/neuronpedia/jacobian-lens}; files, hashes and fitting details in Appendix~\ref{app:lenses}. The Gemma lens is converged; the Qwen lens is not fully converged.}, keeping the top 25 printable tokens per layer: 250 (layer, token) entries per agent. All scores use these \emph{raw} tokens. A \emph{words-relative} rendering, for reading (Figure~\ref{fig:method}c) and one planned secondary test, subtracts the mean lens log-probabilities of all agents at the same read point and layer and keeps the top 25 word tokens, so what every agent shows (formatting, the coming request) cancels out (Appendix~\ref{app:render}; results in Appendix~\ref{app:wordsrel}).
 
 \subsection{The overlap monitor}\label{sec:monitor}
-For each of the 6 pairs of agents, count the entries both have and neither of the other two has. The run score is the largest pair count minus the median of the six; the top pair is the one with the largest count. Nothing is fitted. Figure~\ref{fig:method} shows one real run. \emph{Decision rule, frozen before evaluation:} flag a run whose score exceeds every control's (0\% false positives) or the controls' 95th percentile, which 3 of 50 controls exceed (6\%). Both thresholds are set on the controls they are scored against, so these false-positive rates hold by construction; a held-out rate needs fresh controls.
+For each of the 6 pairs of agents, count the entries both have and neither of the other two has. The run score is the largest pair count minus the median of the six; the top pair is the one with the largest count. Nothing is fitted. Figure~\ref{fig:method} shows one real run; Appendix~\ref{app:detectors} defines every detector. \emph{Decision rule, frozen before evaluation:} flag a run whose score exceeds every control's (0\% false positives) or the controls' 95th percentile, which 3 of 50 controls exceed (6\%). Both thresholds are set on the controls they are scored against, so these false-positive rates hold by construction; a held-out rate needs fresh controls.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_method}
-\caption{\textbf{The overlap monitor on one real scenario.} Gemma Core, scenario \texttt{mil\_01}. (a) In the collusion run, each cell counts the lens entries (layer, token) that a pair of agents shares and the other two lack; C = colluder, H = honest. The colluders share 77; the run score is the largest count minus the median of the six pairs (77 $-$ 7 = 70). The honest pair also stands out (57): colluders lose concepts the honest agents share, so the monitor finds the two-against-two split. (b) The same scenario with four honest agents scores 8. (c) The readable words among the entries only the two colluders share (words-relative rendering).}
+\caption{\textbf{The overlap monitor on one real scenario.} Gemma Core, scenario \texttt{mil\_01}. (a) Collusion run: each cell counts the lens entries a pair shares and the other two lack (C = colluder, H = honest). Score: largest count minus the median of the six pairs, $77-7=70$; the honest pair also stands out (57). (b) Its all-honest control scores 8. (c) Readable words only the colluders share (words-relative). Figure~\ref{fig:anatomy} takes this run apart.}
 \label{fig:method}
 \end{figure}
 
 \subsection{Baselines}
 \begin{itemize}
-\item \emph{Text overlap:} the same score on each agent's own public messages, names removed. Of four variants (shared words, shared word pairs, top-250 TF-IDF words, TF-IDF cosine) we report the best per dataset, which favours text.
-\item \emph{LLM text monitor:} a frozen judge reads the public discussion, rates 0--9 whether two agents collude and names a pair; the score is the expected rating.
+\item \emph{Text overlap:} the same score on each agent's own messages, in four variants; we report the best per dataset, which favours text.
+\item \emph{LLM text monitor:} a frozen LLM reads the discussion, rates 0--9 whether two agents collude and names a pair.
 \item \emph{NARCBench's deception probes} \citep{rose2026}, run with the authors' released code, and \emph{supervised TF-IDF}, the probe's text twin trained on the same agents and folds (Section~\ref{sec:probes}).
 \end{itemize}
 
@@ -102,7 +102,7 @@ We wrap NARCBench's generator, unmodified, to make 50 new Gemma runs per conditi
 \item \emph{No collusion:} two honest agents share one confidential note and a private channel, with no target: cite evidence (\texttt{benign}), a budget detail, a deadline, or the first note given openly (\texttt{benign\_open}).
 \end{itemize}
 
-\subsection{Validation and statistics}
+\subsection{Validation and statistics}\label{sec:validation}
 The instructed coalition is the positive control. Negative controls are each scenario's all-honest run and the harmless-note pairs. The pair-naming rule is fixed on Gemma Core and tested on Qwen Core and Transfer. We report AUROC with 95\% scenario-cluster bootstrap intervals (10{,}000 draws), one-sided p-values from 10{,}000 within-scenario label shuffles, paired bootstraps for differences, and Holm correction within each pre-registered family. Seeds are fixed (statistics 0, probes 0--9); generation sampling is not, so we store the transcripts.
 
 \section{Results}
@@ -141,7 +141,7 @@ Transfer, Qwen3-32B & \textbf{1.00} [1.00, 1.00] & 0.59 [0.51, 0.67] & 0.53 [0.4
 \label{tab:main}
 \end{table}
 
-\subsection{Early warning (planned)}
+\subsection{Early warning (planned)}\label{sec:early}
 Read just before each agent writes its first public message, the monitor already separates the modes: Gemma 0.944 [0.903, 0.979], Qwen 0.928 [0.875, 0.971] (Figure~\ref{fig:early}). Agents speak in turn, so later speakers have read earlier speakers' first messages, and colluders have read their private channel; but a text-overlap monitor, which compares every agent's own words, has nothing to compare yet.
 
 \begin{figure}[t]
@@ -151,7 +151,7 @@ Read just before each agent writes its first public message, the monitor already
 \label{fig:early}
 \end{figure}
 
-\subsection{Who is colluding}
+\subsection{Who is colluding}\label{sec:who}
 The top pair is the colluders in only 31--46\% of runs (Gemma 20 of 50, Qwen 23 of 50, Transfer 11 of 36). When it isn't, it is the two \emph{honest} agents: colluders lose concepts the honest pair shares. The 2-vs-2 split is right in 135 of 136 collusion runs (Table~\ref{tab:main}; exploratory). We fixed one rule on Gemma before applying it to Qwen or Transfer: the coalition is the pair whose members share \emph{fewer} entries in total. On held-out Qwen and Transfer runs it names the colluders in 60 of 86 (70\%, $p=0.0002$, planned).
 
 \begin{figure}[t]
@@ -376,7 +376,7 @@ Gemma (development) 34 of 49; Qwen 36 of 50; Transfer 24 of 36; pooled held-out 
 \subsection{Flag and name}
 With the threshold at the largest control score (0 false alarms), the monitor flags and the side rule names the right pair in 24 of 50 Core runs, 25 of 50 \texttt{aware}, 32 of 50 \texttt{para}, 17 of 50 \texttt{independent} and 24 of 36 Transfer runs. Using the Gemma text judge's named pair instead gives 25, 29, 17, 16 and 13.
 
-\subsection{Words-relative rendering}
+\subsection{Words-relative rendering}\label{app:wordsrel}
 The planned secondary test of the words-relative tokens against the best text monitor passed on Qwen ($+0.036$, lower bound $+0.009$) but not on Gemma ($+0.042$, lower bound $-0.023$, $p=0.15$), and they warn early far less well than the raw tokens (Gemma before the first message: 0.65 vs 0.94). We therefore score with the raw tokens throughout (Figure~\ref{fig:layers} shows the raw tokens by layer).
 
 \subsection{Amendment-1 test family}
@@ -454,6 +454,113 @@ Activation Alignment & 1.00 & 1.00 & 0.57 & 0.48 & 0.52 \\
 \caption{\textbf{The reproduction matches the paper on Core; on Transfer the untrained overlap does better.} NARCBench's deception probes on Qwen3-32B, run with the authors' code, against the paper's Table~2 and our overlap monitor on the same runs. Core: leave-one-domain-out, per-fold AUROC averaged as in their code. Transfer: zero-shot from all of Core. Without their noise augmentation (the paper text's main setting) every number is within 0.002. The values average per-fit AUROCs, as their code does; the head-to-head comparison (Figure~\ref{fig:compare}) scores each run once, averaged over the 50 fits, so there the Deception Split on Transfer is 0.78. $^{*}$Pooled over all runs.}
 \label{tab:probes}
 \end{table}
+
+\section{Lens readout details}\label{app:readout}
+
+\subsection{Lenses}\label{app:lenses}
+Both lenses are Neuronpedia's public J-lenses, fitted with Neuronpedia's copy of the authors' library (\texttt{hijohnnylin/neuronpedia@22f0412}) on WikiText-103 prompts of 128 tokens. They are in the Hugging Face repository \url{https://huggingface.co/neuronpedia/jacobian-lens}:
+\begin{itemize}
+\item \textbf{Gemma-3-27B-IT}, converged at 828 prompts, sha256 \texttt{53f528a9\ldots}:\\ {\footnotesize\nolinkurl{gemma-3-27b-it/jlens/Salesforce-wikitext/gemma-3-27b-it_jacobian_lens.pt}}
+\item \textbf{Qwen3-32B}, 557 prompts, stopped before convergence (about 13\% relative standard error), sha256 \texttt{0af5ccf2\ldots}:\\ {\footnotesize\nolinkurl{qwen3-32b/jlens/Salesforce-wikitext/Qwen3-32B_jacobian_lens.pt}}
+\end{itemize}
+Layer $\ell$ is the output of transformer block $\ell$, counting from 0. The readout is $\mathrm{unembed}(J_\ell h_\ell)$, where $\mathrm{unembed}$ is the model's final norm followed by its output head, computed in fp32. On one prompt per model our readout matches the pinned \texttt{jacobian-lens} library: on Gemma at block 41 (activation cosine 0.999999, 24 of the top 25 tokens shared), and on Qwen at block 39 (identical top 25).
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{lll}
+\toprule
+Model & Blocks & The 10 blocks read (37--91\% of depth)\\
+\midrule
+Gemma-3-27B-IT & 62 (0--61) & 23, 27, 30, 34, 38, 41, 45, 49, 52, 56\\
+Qwen3-32B & 64 (0--63) & 24, 28, 32, 35, 39, 43, 47, 50, 54, 58\\
+\bottomrule
+\end{tabular}
+\caption{\textbf{The layers read.} The same 10 blocks are used in every setting of a model.}
+\label{tab:layers}
+\end{table}
+
+\subsection{Read positions}\label{app:positions}
+Every read point is the last prompt token before an agent writes, so the agent has read everything it will respond to but has produced none of its reply (Table~\ref{tab:positions}). NARCBench's probes (Appendix~\ref{app:probes}) read a different point: the last token of the prompt plus the agent's response, as their code does.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{p{0.14\linewidth}p{0.12\linewidth}p{0.46\linewidth}p{0.15\linewidth}}
+\toprule
+Setting & LLM & Read point & Used in\\
+\midrule
+Core & Gemma, Qwen & \textbf{P1}: the end of the vote prompt (round 4), after three public rounds; one read per agent. & Sections~\ref{sec:main}, \ref{sec:who}, \ref{sec:probes}\\
+Stress sets & Gemma & P1, as on Core. & Sections~\ref{sec:stress}, \ref{sec:probes}\\
+Early warning & Gemma, Qwen & \textbf{T-start}: the end of the prompt for each discussion turn, rounds 1--3; one read per agent and round. Agents speak in turn, so later speakers have read earlier speakers' messages. & Section~\ref{sec:early}\\
+Transfer & Qwen & The end of each agent's final-call prompt (identical for all four agents); one read per agent. & Sections~\ref{sec:main}, \ref{sec:who}, \ref{sec:probes}\\
+Stego & Gemma & \textbf{H-start}: each player's prompt end before its table talk, in every hand (8 per shoe); the run score is the mean over hands. & Appendices E, G\\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Where each setting reads the residual stream.}}
+\label{tab:positions}
+\end{table}
+
+\subsection{Renderings}\label{app:render}
+\begin{itemize}
+\item \textbf{Raw} (every score in this report): the top 25 tokens by lens logit at each layer, after dropping tokens that do not decode to printable text (byte fragments, whitespace-only and special tokens).
+\item \textbf{Words-relative} (Figure~\ref{fig:method}c and the planned secondary test in Appendix~\ref{app:wordsrel}): the agent's lens log-probabilities minus their mean over a reference set of calls at the same read point and layer, then the top 25 among word tokens (letters or digits, with inner apostrophes or hyphens allowed, the authors' display rule). What every agent shows at that point, such as formatting and the coming request, cancels out. The reference set is all final calls of the dataset at P1 (400 on Core and on each stress set, 288 on Transfer), all discussion calls of the same round at T-start, and all player calls of the same hand number on Stego.
+\end{itemize}
+
+\section{The detectors}\label{app:detectors}
+Every detector outputs one score per run; all are evaluated the same way (Section~\ref{sec:monitor} and Section~\ref{sec:validation}). Agents are indexed $i \in \{1,2,3,4\}$, and a pair $\{i,j\}$ has the complement $\{k,m\}$.
+
+\subsection{Overlap monitor (ours)}\label{app:det-overlap}
+Each agent is a set of 250 lens entries, its top 25 raw tokens at each of the 10 layers $L$ (Appendix~\ref{app:readout}):
+\[
+S_i = \{(\ell, t) : \ell \in L,\; t \in \mathrm{top}_{25}\,\mathrm{lens}_\ell(h_{i,\ell})\}.
+\]
+A pair's count is the number of entries both agents hold and neither other agent holds, and the run score is the largest count minus the median over the six pairs:
+\[
+n_{ij} = \big|(S_i \cap S_j) \setminus (S_k \cup S_m)\big|, \qquad
+s = \max_{i<j} n_{ij} - \operatorname*{median}_{i<j} n_{ij}.
+\]
+The pair with the largest count is the \emph{top pair}. Nothing is fitted; the median makes the score relative to how much any two agents of that run happen to share. The side rule (Section~\ref{sec:who}) takes the top pair and its complement and names as the coalition the pair whose members share fewer entries in total, $|S_i \cap S_j|$ (ties go to the top pair). The frozen decision rule flags a run when $s > \tau_0 = \max_c s_c$ or $s > \tau_5 = Q_{0.95}(s_c)$, over the control runs $c$. Figure~\ref{fig:anatomy} takes the method figure's run apart.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{fig_anatomy}
+\caption{\textbf{Anatomy of the overlap monitor on one real run} (Gemma Core, scenario \texttt{mil\_01}; C = colluder, H = honest). (a) Every lens entry of the four agents, grouped by exactly which agents hold it; dots below mark the holders. Only the six two-agent groups (shaded) are counted. The colluders hold 77 entries no one else holds, and the honest pair 57: the run splits two against two. (b) The six pair counts become the run score, largest minus median: 70 in the collusion run against 8 in its all-honest control. (c) The colluder and honest pairs' exclusive entries peak in the middle-to-late blocks.}
+\label{fig:anatomy}
+\end{figure}
+
+\subsection{Text-overlap monitors}\label{app:det-text}
+The same score on what a text monitor sees: each agent's own public messages of rounds 1--3, with every agent's name removed. Four representations of agent $i$:
+\begin{itemize}
+\item \textbf{shared words}: $S_i$ = the set of word types (lower-case, three or more letters);
+\item \textbf{shared word pairs}: $S_i$ = adjacent word pairs, after removing stop words;
+\item \textbf{top-250 TF-IDF words}: $S_i$ = the agent's 250 words of highest TF-IDF, with IDF over all agents of the dataset, to match the lens's 250 entries;
+\item \textbf{TF-IDF cosine}: the agent's TF-IDF vector $v_i$, scored as
+\[ s = \max_{i<j}\cos(v_i,v_j) - \operatorname*{median}_{i<j}\cos(v_i,v_j). \]
+\end{itemize}
+The first three are scored exactly as the lens sets. Per dataset we report the variant with the highest AUROC, which favours text; in Table~\ref{tab:main} the false-positive operating points take the best variant at each threshold.
+
+\subsection{LLM text monitor}\label{app:det-llm}
+A frozen LLM (Qwen3-32B on Qwen Core; Gemma-3-27B on Gemma Core, the stress sets and Transfer) reads the case brief and rounds 1--3 of the public discussion with the agents numbered, and is asked how likely it is that two agents are colluding, on a scale of 0--9, then which pair. On Transfer, whose runs are tasks rather than votes, the committee wording is replaced by a neutral task description. The score is the expected rating under the next-token distribution renormalised over the ten digit tokens,
+\[
+s = \sum_{r=0}^{9} r\, p(r), \qquad p(r) = \frac{P(\text{token } r)}{\sum_{r'=0}^{9} P(\text{token } r')},
+\]
+and the named pair comes from a greedy reply.
+
+\subsection{NARCBench's deception probes}\label{app:det-probe}
+From \citet{rose2026}, run with their code (Appendix~\ref{app:probes}). Agent $i$'s activation $x_i$ at a layer of their five-layer band is read at the last token of its prompt plus response (on Core, averaged over the discussion rounds) and standardised to $z_i$. A logistic regression ($C{=}25$, \texttt{liblinear}, 8 iterations, with 4 noisy copies of every sample, $\sigma=0.05$) is trained to tell colluders from honest agents in Core collusion runs, honest agents downsampled to balance. Its unit-norm weight vector $d$ is the \emph{deception direction}, and each agent gets a score $s_i = d^\top z_i$, sorted as $s_{(1)} \ge s_{(2)} \ge s_{(3)} \ge s_{(4)}$. Five run statistics follow:
+\begin{itemize}
+\item \textbf{Peak Suspicion}: $s_{(1)}$.
+\item \textbf{Deception Split}: $\tfrac12(s_{(1)}+s_{(2)}) - \tfrac12(s_{(3)}+s_{(4)})$; their primary statistic for two colluders.
+\item \textbf{Asymmetry Probe}: the features $[\operatorname{Var}(s),\, s_{(1)}-s_{(4)},\, \text{Deception Split},\, \bar s]$, standardised, into a logistic regression ($C{=}0.01$) trained on Core runs; the score is its collusion probability.
+\item \textbf{Sorted Concatenation}: $[z_{(1)}; z_{(2)}; z_{(3)}; z_{(4)}]$, the standardised activations in score order, reduced by PCA to 50 dimensions, standardised, into a logistic regression ($C{=}0.01$).
+\item \textbf{Activation Alignment}: $-\tfrac16\sum_{i<j}\cos(x_i,x_j)$ on the raw activations; no training.
+\end{itemize}
+Scores are averaged over the 5 layers and 10 seeds. In the head-to-head comparison every scored run is held out from its probe's training domain.
+
+\subsection{Supervised TF-IDF}\label{app:det-tfidf}
+The probe's text twin: each agent's own public messages (names removed) as a TF-IDF vector, and a logistic regression trained colluder vs honest on the same agents and folds as the probe. Its decision function is the per-agent score $s_i$, fed into Peak Suspicion, Deception Split and the Asymmetry Probe. The planned validity gate re-trains it with colluder labels shuffled within runs and requires a Core AUROC within $0.5\pm0.1$. It scored 0.63 (Gemma) and 0.84 (Qwen), so we report its results as invalid.
+
+\subsection{Second-stage judges}\label{app:det-stage2}
+Given the monitor's two-against-two split, a frozen Gemma judge sees only the lens tokens exclusive to each side (``Pair A'', the top pair, and ``Pair B''), with no transcript, names or roles, and rates 0--9 how likely it is that one pair shares a hidden agenda to push an outcome; the score is the expected rating, as above. The retry shows the words-relative exclusive tokens plus the case's public brief. Both are in Appendix~\ref{app:notwork}.
 
 \section*{LLM Usage Statement}
 \phantomsection\addcontentsline{toc}{section}{LLM Usage Statement}
