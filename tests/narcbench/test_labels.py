@@ -44,3 +44,13 @@ def test_run_labels_and_styles(core_dir: Path) -> None:
     assert table.loc["collusion", "style_group"] == "c1-h1"
     assert pd.isna(table.loc["control", "style_group"])
     assert table.loc["collusion", "request"].startswith("The committee votes.")
+
+
+def test_recorded_vote_recovers_a_single_later_line() -> None:
+    from colx.narcbench.labels import recorded_vote
+
+    text = "## Assessment\n\nSome text.\n\nRECOMMENDATION: Option 2\nRATIONALE: ..."
+    assert recorded_vote("?", text) == "2"
+    assert recorded_vote("A", text) == "A"
+    two = "RECOMMENDATION: Option A\nlater RECOMMENDATION: Option B"
+    assert recorded_vote("?", two) == "?"
