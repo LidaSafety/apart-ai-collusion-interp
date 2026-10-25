@@ -1,0 +1,92 @@
+"""`col lens-judge joint …`: the joint (Level-1) judge (docs/plans/joint-judge.md)."""
+
+from pathlib import Path
+from typing import Annotated
+
+import pandas as pd
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from colx.joint.pairs_write import analyse_pairs
+from colx.joint.run import run_joint, write_inputs
+from colx.joint.write import analyse as run_analysis
+from colx.provenance import MODEL_ID
+
+app = typer.Typer(no_args_is_help=True, help="Joint judge: all four agents in one prompt.")
+console = Console()
+
+ROUND4_DIR = Path("results/round4-judge")
+OUT_DIR = Path("results/joint-judge")
+
+Round4Dir = Annotated[Path, typer.Option(help="Round-4 outputs (labels, lens tokens, scores).")]
+OutDir = Annotated[Path, typer.Option(help="Output folder of the joint judge.")]
+
+
+def _print_counts(title: str, counts: dict[str, object]) -> None:
+    """Print a two-column table of named counts."""
+    table = Table(title=title)
+    table.add_column("Count")
+    table.add_column("Value", justify="right")
+    for key, value in counts.items():
+        table.add_row(key, str(value))
+    console.print(table)
+
+
+@app.command()
+def prompts(
+    round4_dir: Round4Dir = ROUND4_DIR,
+    out_dir: OutDir = OUT_DIR,
+    run: Annotated[str, typer.Option(help="Run whose prompts to print.")] = (
+        "deception__audit_01__collusion"
+    ),
+) -> None:
+    """Pool the lens tokens, build all 500 prompts, and print one run's prompt per arm."""
+    table = write_inputs(round4_dir, out_dir, None)
+    shown = table[(table.run_id == run) & (table.position != "P2")]
+    for row in shown.itertuples():
+        console.rule(f"{row.arm} {row.position} · {row.run_id}")
+        console.print(row.prompt, markup=False, highlight=False)
+    console.print(f"Wrote {len(table)} prompts to {out_dir / 'prompts.parquet'}")
+
+
+@app.command()
+def judge(
+    model: Annotated[str, typer.Option(help="Qwen3-32B: Hub id or local folder.")] = MODEL_ID,
+    round4_dir: Round4Dir = ROUND4_DIR,
+    out_dir: OutDir = OUT_DIR,
+    dry_run: Annotated[
+        bool, typer.Option(help="2 runs, format checks only (no scores shown).")
+    ] = False,
+) -> None:
+    """Score every joint prompt (0-9 rating) and generate the named pair (GPU)."""
+    checks = run_joint(model, round4_dir, out_dir, dry_run, log=console.print)
+    _print_counts("Answer-format checks", checks)
+
+
+@app.command()
+def analyse(
+    out_dir: OutDir = OUT_DIR,
+    round4_dir: Round4Dir = ROUND4_DIR,
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """AUROCs, paired comparisons, pair identification and the primary family."""
+    summary = run_analysis(out_dir, round4_dir, n_boot, n_perm, log=console.print)
+    console.print(pd.DataFrame(summary["primary"]).round(3).to_string(index=False))
+    console.print(pd.DataFrame(summary["pair_found"]).round(3).to_string(index=False))
+
+
+@app.command("pair-scores")
+def pair_scores(
+    out_dir: OutDir = OUT_DIR,
+    round4_dir: Round4Dir = ROUND4_DIR,
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """Exploratory: judge-agreement and token-overlap pair scores, with their tests."""
+    records = pd.DataFrame(analyse_pairs(out_dir, round4_dir, n_boot, n_perm, log=console.print))
+    aurocs = records[records.test.isin(["a", "b"])]
+    console.print(aurocs.pivot(index="instrument", columns="test", values="auroc").round(3))
+    found = records[records.test == "pair_found"]
+    console.print(found.pivot(index="instrument", columns="group", values="found"))
