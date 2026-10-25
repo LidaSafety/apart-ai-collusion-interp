@@ -12,8 +12,9 @@ from pathlib import Path
 import pandas as pd
 
 from colx import provenance, qwen
+from colx.gemma import model as gemma
 from colx.judge.prompts import GAME
-from colx.judge.run import MAX_BATCH_TOKENS, render_prompts
+from colx.judge.run import MAX_BATCH_TOKENS
 from colx.judge.scoring import (
     abc_scores,
     answer_probs,
@@ -66,9 +67,22 @@ def prompt_table(colluders: pd.DataFrame, runs: pd.DataFrame, messages: dict) ->
     return pd.DataFrame(rows)
 
 
-def score_prompts(model, tokenizer, table: pd.DataFrame, log=print) -> pd.DataFrame:
+def load_judge(judge: str, model_path: str):
+    """Tokenizer, model and a render function (user turn -> chat text) for the judge."""
+    if judge == "gemma":
+        tokenizer, model = gemma.load(Path(model_path))
+        render = lambda user: tokenizer.apply_chat_template(  # noqa: E731 (tiny local alias)
+            [{"role": "user", "content": user}], tokenize=False, add_generation_prompt=True
+        )
+        return tokenizer, model, render
+    tokenizer, model = qwen.load_tokenizer(model_path), qwen.load_model(model_path)
+    return tokenizer, model, lambda user: qwen.render_chat(tokenizer, None, user)
+
+
+def score_prompts(model, tokenizer, render, table: pd.DataFrame, log=print) -> pd.DataFrame:
     """P(Yes), P(No), score B and the top answer token for every prompt."""
-    texts, lengths = render_prompts(tokenizer, table)
+    texts = [render(p) for p in table["prompt"]]
+    lengths = [len(ids) for ids in tokenizer(texts, add_special_tokens=False)["input_ids"]]
     ids, records = answer_token_ids(tokenizer), [None] * len(texts)
     start = time.time()
     for batch in length_batches(lengths, MAX_BATCH_TOKENS):
@@ -85,21 +99,28 @@ def score_prompts(model, tokenizer, table: pd.DataFrame, log=print) -> pd.DataFr
 
 
 def run_text_judge(
-    model_path: str, colluders, runs, messages, out_dir: Path, dry_run: bool, log=print
+    model_path: str,
+    colluders,
+    runs,
+    messages,
+    out_dir: Path,
+    dry_run: bool,
+    judge: str = "qwen",
+    log=print,
 ) -> dict:
     """Build, score and save the text-judge table; return the format checks."""
     table = prompt_table(colluders, runs, messages)
     if dry_run:
         table = table.head(2)
-    tokenizer, model = qwen.load_tokenizer(model_path), qwen.load_model(model_path)
+    tokenizer, model, render = load_judge(judge, model_path)
     tokenizer.padding_side = "left"
-    scores = score_prompts(model, tokenizer, table, log)
+    scores = score_prompts(model, tokenizer, render, table, log)
     path = out_dir / ("text_judge_dryrun.parquet" if dry_run else "text_judge.parquet")
     scores.to_parquet(path, index=False)
     provenance.write_meta(
         path,
         provenance.collect(
-            "col lens-judge turns text-judge", dry_run=dry_run, model_path=model_path
+            "col lens-judge turns text-judge", judge=judge, dry_run=dry_run, model_path=model_path
         ),
     )
     mass = scores.p_yes + scores.p_no

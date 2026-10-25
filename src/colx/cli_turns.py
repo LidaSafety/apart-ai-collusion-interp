@@ -58,10 +58,13 @@ def text_judge(
     round4_dir: Annotated[Path, typer.Option(help="Round-4 labels.")] = ROUND4_DIR,
     core_dir: Annotated[Path, typer.Option(help="NARCBench Core transcripts.")] = CORE_DIR,
     dry_run: Annotated[bool, typer.Option(help="2 colluders, format checks only.")] = False,
+    judge: Annotated[str, typer.Option(help="qwen or gemma (the judge model's family).")] = "qwen",
 ) -> None:
     """Follow-up B1: a frozen text judge at round 3 for every colluder (GPU)."""
     _, colluders, runs, _, messages = load_inputs(out_dir, round4_dir, core_dir)
-    checks = run_text_judge(model, colluders, runs, messages, out_dir, dry_run, console.print)
+    checks = run_text_judge(
+        model, colluders, runs, messages, out_dir, dry_run, judge, console.print
+    )
     console.print(checks)
 
 
