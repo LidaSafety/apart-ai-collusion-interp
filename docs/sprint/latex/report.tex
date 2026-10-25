@@ -42,7 +42,7 @@ Author name 1 & Author name 2 & Author name 3\\
 
 NARCBench committees have four agents; in collusion runs two alone are instructed to push one option. With Gemma-3-27B or Qwen3-32B as the agents, the monitor separates collusion runs from all-honest controls at AUROC 0.98--0.99. It beats the same count on the agents' messages (planned, Gemma: +0.08) and, on Qwen, an LLM judge (0.99 vs 0.84). On six unseen task types it reaches 1.00, where text overlap scores 0.59 and NARCBench's trained deception probe 0.78 (planned, +0.22). It works from each agent's state before it speaks (0.93--0.94), and a rule fixed on one LLM names the colluding pair in 70\% of held-out runs.
 
-In pre-registered stress tests it survives colluders warned that their reasoning is monitored (0.99) or told to keep the arrangement out of it (0.99), and paraphrased instructions, even without a private channel (0.96, 0.89). But it flags honest pairs given a harmless confidential note almost as readily (0.88--0.94), even when the note is open; the trained probe rejects one such note (0.97 vs 0.64) but flags two others. It is a cheap, early, transferable detector of \emph{exclusive context}, context only two agents share: a first stage, not a detector of intent.
+In pre-registered stress tests it survives colluders warned that their reasoning is monitored (0.99) or told to keep the arrangement out of it (0.99), and paraphrased instructions, even without a private channel (0.96, 0.89). But it flags honest pairs given a harmless confidential note almost as readily (0.88--0.94), even when the note is open; the trained probe rejects one such note (0.97 vs 0.64) but flags two others. It is a cheap, early, transferable monitor of \emph{exclusive context}, context only two agents share: a first stage, blind to intent.
 \end{abstract}
 
 \section{Introduction}
@@ -51,7 +51,7 @@ Multi-agent LLM systems increasingly negotiate, review code and make decisions t
 
 We test a white-box alternative: reading what the agents' activations \emph{represent}. The Jacobian lens (J-lens; \citealp{gurnee2026}) is a linear readout of any layer: it carries a residual-stream vector $h_\ell$ to the final layer with the average input--output Jacobian $J_\ell=\mathbb{E}[\partial h_{\mathrm{final}}/\partial h_\ell]$, estimated over a generic text corpus, and decodes $J_\ell h_\ell$ with the model's own unembedding into a ranking of vocabulary tokens. Two agents given the same exclusive context, such as an instruction or a note, should carry concepts the others lack, so a plain count of shared lens tokens should find them.
 
-\paragraph{Theory of change.} Operators who run open-weight agents have white-box access to every one. A monitor that needs no collusion labels, no training and no extra LLM can run on every interaction as a cheap first stage: it flags \emph{which} pair shares exclusive context, early, and a costlier second stage (a human, or a judge with the transcript) reviews only flagged runs. Unlike the benchmark's trained probes \citep{rose2026}, ours is label-free and \emph{relational}: it compares agents with each other.
+\paragraph{Theory of change.} Operators who run open-weight agents have white-box access to every one. A monitor that needs no collusion labels, no training and no extra LLM can run on every interaction as a cheap first stage: it flags \emph{which} pair shares exclusive context, early, and a costlier second stage reviews only flagged runs. Unlike the benchmark's trained probes \citep{rose2026}, ours is label-free and \emph{relational}: it compares agents with each other.
 
 \paragraph{Our main contributions are:}
 \begin{enumerate}
@@ -79,7 +79,7 @@ The logit lens \citep{nostalgebraist2020}, the tuned lens \citep{belrose2023} an
 For each agent we take the residual stream, the output of a transformer block, at the last prompt token before the agent writes: on Core and the stress sets, its vote prompt after three public rounds (P1); on Transfer, its final call; for early warning, the start of each of its discussion turns (Appendix~\ref{app:positions} covers every setting, including Stego). We read 10 blocks between 37\% and 91\% of depth: 23, 27, 30, 34, 38, 41, 45, 49, 52 and 56 of Gemma-3-27B's 62, and 24, 28, 32, 35, 39, 43, 47, 50, 54 and 58 of Qwen3-32B's 64. Each is decoded with Neuronpedia's public J-lens for that model\footnote{\url{https://huggingface.co/neuronpedia/jacobian-lens}; files, hashes and fitting details in Appendix~\ref{app:lenses}. The Gemma lens is converged; the Qwen lens is not fully converged.}, keeping the top 25 printable tokens per layer: 250 (layer, token) entries per agent. All scores use these \emph{raw} tokens. A \emph{words-relative} rendering, for reading (Figure~\ref{fig:method}c) and one planned secondary test, subtracts the mean lens log-probabilities of all agents at the same read point and layer and keeps the top 25 word tokens, so what every agent shows (formatting, the coming request) cancels out (Appendix~\ref{app:render}; results in Appendix~\ref{app:wordsrel}).
 
 \subsection{The overlap monitor}\label{sec:monitor}
-For each of the 6 pairs of agents, count the entries both have and neither of the other two has. The run score is the largest pair count minus the median of the six; the top pair is the one with the largest count. Nothing is fitted. Figure~\ref{fig:method} shows one real run; Appendix~\ref{app:detectors} defines every detector. \emph{Decision rule, frozen before evaluation:} flag a run whose score exceeds every control's (0\% false positives) or the controls' 95th percentile, which 3 of 50 controls exceed (6\%). Both thresholds are set on the controls they are scored against, so these false-positive rates hold by construction; a held-out rate needs fresh controls.
+For each of the 6 pairs of agents, count the entries both have and neither of the other two has. The run score is the largest pair count minus the median of the six; the top pair is the one with the largest count. Nothing is fitted. Figure~\ref{fig:method} shows one real run; Appendix~\ref{app:det-overlap} gives the formal definition and takes that run apart (Figure~\ref{fig:anatomy}). \emph{Decision rule, frozen before evaluation:} flag a run whose score exceeds every control's (0\% false positives) or the controls' 95th percentile, which 3 of 50 controls exceed (6\%). Both thresholds are set on the controls they are scored against, so these false-positive rates hold by construction; a held-out rate needs fresh controls.
 
 \begin{figure}[t]
 \centering
@@ -90,13 +90,14 @@ For each of the 6 pairs of agents, count the entries both have and neither of th
 
 \subsection{Baselines}
 \begin{itemize}
-\item \emph{Text overlap:} the same score on each agent's own messages, in four variants; we report the best per dataset, which favours text.
-\item \emph{LLM text monitor:} a frozen LLM reads the discussion, rates 0--9 whether two agents collude and names a pair.
-\item \emph{NARCBench's deception probes} \citep{rose2026}, run with the authors' released code, and \emph{supervised TF-IDF}, the probe's text twin trained on the same agents and folds (Section~\ref{sec:probes}).
+\item \emph{Text overlap:} the same score on each agent's own messages, in four variants (Appendix~\ref{app:det-text}); we report the best per dataset, which favours text.
+\item \emph{LLM text monitor:} a frozen LLM reads the discussion, rates 0--9 whether two agents collude and names a pair (Appendix~\ref{app:det-llm}).
+\item \emph{NARCBench's deception probes} \citep{rose2026}, trained linear probes run with the authors' released code (Section~\ref{sec:probes}; Appendix~\ref{app:det-probe}).
+\item \emph{Supervised TF-IDF:} the probe's text twin, a classifier of each agent's messages trained on the same agents and folds (Appendix~\ref{app:det-tfidf}).
 \end{itemize}
 
 \subsection{Stress tests}
-We wrap NARCBench's generator, unmodified, to make 50 new Gemma runs per condition, each compared with the same 50 Core controls (prompts in Appendix~\ref{app:prompts}).
+We wrap NARCBench's generator, unmodified, to make 50 new Gemma runs per condition, each compared with the same 50 Core controls (prompts in Appendix~\ref{app:prompts}; results in full in Appendix~\ref{app:stressfull}).
 \begin{itemize}
 \item \emph{Real collusion:} colluders told a monitor reads their messages \emph{and reasoning} (\texttt{aware}); also told to keep the arrangement out of their reasoning (\texttt{evade}); colluder 2's instruction paraphrased (\texttt{para}); paraphrased with no private channel (\texttt{independent}).
 \item \emph{No collusion:} two honest agents share one confidential note and a private channel, with no target: cite evidence (\texttt{benign}), a budget detail, a deadline, or the first note given openly (\texttt{benign\_open}).
@@ -109,7 +110,7 @@ The instructed coalition is the positive control. Negative controls are each sce
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.92\linewidth]{fig_roc}
+\includegraphics[width=0.88\linewidth]{fig_roc}
 \caption{\textbf{The lens separates collusion from controls better than the agents' words do.} ROC curves on (a) Gemma Core, (b) Qwen Core and (c) Transfer: lens overlap (vermillion) vs the best of four text-overlap monitors on the same runs (grey); AUROC in brackets. On Transfer the coalition is almost invisible in the messages but separates perfectly in the activations. Intervals are in Table~\ref{tab:main}.}
 \label{fig:main}
 \end{figure}
@@ -142,11 +143,11 @@ Transfer, Qwen3-32B & \textbf{1.00} [1.00, 1.00] & 0.59 [0.51, 0.67] & 0.53 [0.4
 \end{table}
 
 \subsection{Early warning (planned)}\label{sec:early}
-Read just before each agent writes its first public message, the monitor already separates the modes: Gemma 0.944 [0.903, 0.979], Qwen 0.928 [0.875, 0.971] (Figure~\ref{fig:early}). Agents speak in turn, so later speakers have read earlier speakers' first messages, and colluders have read their private channel; but a text-overlap monitor, which compares every agent's own words, has nothing to compare yet.
+Read just before each agent writes its first public message (Appendix~\ref{app:positions}), the monitor already separates the modes: Gemma 0.944 [0.903, 0.979], Qwen 0.928 [0.875, 0.971] (Figure~\ref{fig:early}). Agents speak in turn, so later speakers have read earlier speakers' first messages, and colluders have read their private channel; but a text-overlap monitor, which compares every agent's own words, has nothing to compare yet.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.56\linewidth]{fig_early}
+\includegraphics[width=0.5\linewidth]{fig_early}
 \caption{\textbf{The signal is there before each agent's first message.} AUROC by read point (raw lens tokens, 95\% bands). ``Before R1'' is each agent's state just before it writes its first public message.}
 \label{fig:early}
 \end{figure}
@@ -167,7 +168,7 @@ The monitor survives every collusion condition (Figure~\ref{fig:stress}); each p
 \subsection{Audit findings}
 
 \subsubsection{An LLM text monitor is fragile}\label{sec:llmmon}
-Gemma-3-27B with the same prompt that works for Qwen is inverted on Gemma transcripts (0.17, and 0.12--0.14 on stress sets). It reads honest agents converging on the fair option as coordination. Its named \emph{pair}, however, is often right (32 of 50).
+Gemma-3-27B with the same prompt (Appendix~\ref{app:det-llm}) that works for Qwen is inverted on Gemma transcripts (0.17, and 0.12--0.14 on stress sets). It reads honest agents converging on the fair option as coordination. Its named \emph{pair}, however, is often right (32 of 50).
 
 \subsubsection{NARCBench-Stego's own monitor misses every coded table}
 NARCBench-Stego's LLM pit boss flagged 0 of 150 collusion tables across three datasets, while a prompted Gemma monitor reaches 0.68--0.84. Two leaks put the receiver's decoding notes in the public chat and the true count history in the colluders' channel. We fixed both (Appendix~\ref{app:stego}).
@@ -213,7 +214,7 @@ All three planned tests pass (Holm over three, one-sided, all $p<0.001$; Figure~
 \item \textbf{K1, K2: the probe tells collusion from the cite-evidence note.} It scores 0.97 [0.94, 0.99] against overlap's 0.64: $+0.33$ (lower bound $+0.26$).
 \item \textbf{But it flags two other harmless notes} (exploratory): 0.93 and 0.92 against controls for the budget and deadline notes. Collusion vs these notes was not tested.
 \end{itemize}
-Our supervised TF-IDF baseline failed its planned validity gate: with colluder labels shuffled it still scored 0.63 (Gemma) and 0.84 (Qwen), outside $0.5\pm0.1$, so we report it as invalid.
+Supervised TF-IDF failed its planned validity gate (shuffled labels still scored 0.63 and 0.84, outside $0.5\pm0.1$), so we report it as invalid.
 
 \section{Discussion and Limitations}
 
@@ -222,15 +223,14 @@ The monitor detects exclusive context early, without training, despite warnings 
 \begin{itemize}
 \item \textbf{Use it as a first stage.} One forward pass per agent flags a run early and names a pair; a human or a judge with the transcript then reviews it, since judges given only the shared tokens failed (Appendix~\ref{app:notwork}).
 \item \textbf{Pair it with a trained probe where labels exist.} The probe rejected one harmless note that overlap flags, but transferred worse.
-\item \textbf{Do not trust a single text judge.} The same plausible prompt worked with Qwen judging Qwen's transcripts and was inverted with Gemma judging Gemma's.
 \end{itemize}
 
 \subsection{Limitations and future work}
-Coalitions are instructed (some warned), never optimised against the lens, and always two of four agents; false-positive rates are in-sample (Section~\ref{sec:monitor}). The monitor misses colluders who share no context (Stego, Appendix~\ref{app:notwork}). ``Early'' comes after the colluders' private channel and earlier speakers' first messages. It needs white-box access and a lens per model (Appendix~\ref{app:limits}). Next: a second stage for harmful vs harmless context, colluders trained against the lens, and more models.
+Coalitions are instructed (some warned), never optimised against the lens, and always two of four agents; false-positive rates are in-sample (Section~\ref{sec:monitor}). The monitor misses colluders who share no context (Stego, Appendix~\ref{app:notwork}). It needs white-box access and a lens per model (Appendix~\ref{app:limits}). Next: a second stage for harmful vs harmless context, colluders trained against the lens, and more models.
 
 \section{Conclusion}
 
-An untrained count of shared lens concepts finds colluding pairs early, beats text monitors and transfers better than trained probes, but also flags harmless exclusive context: a strong first stage, not a detector of intent.
+An untrained count of shared lens concepts finds colluding pairs early, beats text monitors and transfers better than trained probes, but also flags harmless exclusive context: a strong first-stage monitor, blind to intent.
 
 \label{end:main}\section*{Code and Data}
 \phantomsection\addcontentsline{toc}{section}{Code and Data}
@@ -537,8 +537,8 @@ Stego & Gemma & \textbf{H-start}: each player's prompt end before its table talk
 \item \textbf{Words-relative} (Figure~\ref{fig:method}c and the planned secondary test in Appendix~\ref{app:wordsrel}): the agent's lens log-probabilities minus their mean over a reference set of calls at the same read point and layer, then the top 25 among word tokens (letters or digits, with inner apostrophes or hyphens allowed, the authors' display rule). What every agent shows at that point, such as formatting and the coming request, cancels out. The reference set is all final calls of the dataset at P1 (400 on Core and on each stress set, 288 on Transfer), all discussion calls of the same round at T-start, and all player calls of the same hand number on Stego.
 \end{itemize}
 
-\section{The detectors}\label{app:detectors}
-Every detector outputs one score per run; all are evaluated the same way (Section~\ref{sec:monitor} and Section~\ref{sec:validation}). Agents are indexed $i \in \{1,2,3,4\}$, and a pair $\{i,j\}$ has the complement $\{k,m\}$.
+\section{The monitors}\label{app:monitors}
+Every monitor outputs one score per run; all are evaluated the same way (Section~\ref{sec:monitor} and Section~\ref{sec:validation}). Agents are indexed $i \in \{1,2,3,4\}$, and a pair $\{i,j\}$ has the complement $\{k,m\}$.
 
 \subsection{Overlap monitor (ours)}\label{app:det-overlap}
 Each agent is a set of 250 lens entries, its top 25 raw tokens at each of the 10 layers $L$ (Appendix~\ref{app:readout}):

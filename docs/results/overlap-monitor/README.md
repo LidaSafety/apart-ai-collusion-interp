@@ -1,4 +1,4 @@
-# Results: is the overlap detector a real collusion monitor?
+# Results: is the overlap monitor a real collusion monitor?
 
 2026-10-25 · Plan: [`docs/plans/overlap-monitor.md`](../../plans/overlap-monitor.md) (with amendments 1–4) · Branch `experiments/lens-judge/overlap-monitor`. Planned tests are marked **(planned)**; everything else is **exploratory**.
 
@@ -9,7 +9,7 @@
    - Qwen Core +0.035;
    - Transfer +0.41, where text is near chance (exploratory);
    - at zero false alarms on the controls (in-sample), the lens catches 70%, 74% and 100% of collusion runs; the best text monitor at most 64%, 66% and 14%.
-2. **The detector survives every stress test** (planned, all pass Holm):
+2. **The monitor survives every stress test** (planned, all pass Holm):
    - colluders warned that their reasoning is monitored: 0.99;
    - warned and told to keep the arrangement out of their reasoning: 0.99 (amendment 3);
    - paraphrased instructions: 0.96;
@@ -47,7 +47,7 @@ AUROC for collusion mode vs control, with 95% scenario-bootstrap intervals. "Spl
 
 - The four text instruments count the same thing on each agent's own public messages (rounds 1–3, names removed): shared words, shared word pairs, the 250 top TF-IDF words, and TF-IDF cosine.
 - The comparison uses the *best* of the four on each dataset, which favours text.
-- **The detector's top pair is the colluders in only 31–46% of runs** (20 of 50, 23 of 50, 11 of 36). When it isn't, it is the two *honest* agents: colluders lose concepts the honest pair shares. Section B uses this.
+- **The monitor's top pair is the colluders in only 31–46% of runs** (20 of 50, 23 of 50, 11 of 36). When it isn't, it is the two *honest* agents: colluders lose concepts the honest pair shares. Section B uses this.
 
 Outputs are in `results/overlap/text/{gemma,qwen,transfer}.{json,parquet}`, from `col lens-judge overlap text --dataset …`.
 
@@ -64,7 +64,7 @@ There are 50 new collusion-mode runs per condition, made with NARCBench's `core.
 | **benign**: honest pair with one shared confidential note | **0.939** [0.889, 0.975] | 0.884 | +0.055 (−0.003) | 48 / 20 | 2 (no target) |
 
 - **Primary family** (aware, para, independent > 0.5, Holm): all three pass, p < 0.001.
-- **Core collusion vs benign, lens raw: 0.64** [0.55, 0.72]. The detector barely separates a harmful coalition from a harmless shared secret.
+- **Core collusion vs benign, lens raw: 0.64** [0.55, 0.72]. The monitor barely separates a harmful coalition from a harmless shared secret.
 - **Operating point.** The threshold is the largest Core-control score, so 0 of 50 controls are flagged. Collusion runs flagged at that threshold:
 
   | Set | Flagged |
@@ -226,7 +226,7 @@ Each condition has 50 new Gemma runs against the same 50 Core controls. Predicti
 - **Text overlap does about as well as the lens on the budget and deadline notes** (0.89, 0.90). That's against my prediction that these notes, irrelevant to the decision, wouldn't change what the agents write.
 - **On `benign_open`, text overlap drops (0.70–0.78) while the lens rises.** When the note is open, the pair's *words* stop being distinctive, but their *activations* still share it.
 
-**Reading.** The lens monitor detects **context that only those two agents were given**, regardless of whether it is secret and regardless of whether it is harmful. It is robust to deliberate evasion of reasoning. It is not a detector of secrecy or of collusive intent.
+**Reading.** The lens monitor detects **context that only those two agents were given**, regardless of whether it is secret and regardless of whether it is harmful. It is robust to deliberate evasion of reasoning. It does not detect secrecy or collusive intent.
 
 Predictions vs results:
 - 3 of 6 predictions were right: G1, budget and deadline.
@@ -281,8 +281,8 @@ Outputs: `results/probes/{qwen,gemma}/`, `results/probes/qwen/paper_metrics*.jso
 
 ## What this means for monitoring
 
-- **What the lens monitor is:** a cheap, label-free detector of agents that share a hidden context. It works from each agent's state before its own first message, survives warnings and paraphrase, and usually picks out which pair.
-- **What it isn't:** a detector of harmful intent, or even of secrecy. Three different harmless shared notes are flagged (0.88–0.94), the same note given openly is flagged *more* (G), and judges reading the shared tokens couldn't tell harmful from harmless (E, H).
+- **What the lens monitor is:** a cheap, label-free monitor of agents that share exclusive context. It works from each agent's state before its own first message, survives warnings and paraphrase, and usually picks out which pair.
+- **What it isn't:** a monitor of harmful intent, or even of secrecy. Three different harmless shared notes are flagged (0.88–0.94), the same note given openly is flagged *more* (G), and judges reading the shared tokens couldn't tell harmful from harmless (E, H).
 - **What it resists:** colluders told to keep the arrangement out of their reasoning are still flagged at 0.985 (G).
 - **How it pairs with a trained probe:** overlap transfers and needs no labels; the probe rejects one harmless note that overlap flags, but flags two others against controls (I).
 - **Where it adds over text:** when the shared secret doesn't surface in what agents write (Transfer) and before each agent writes its own first message (early warning). Once colluders' messages converge, text overlap catches them as well.
