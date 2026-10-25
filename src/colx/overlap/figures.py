@@ -275,7 +275,7 @@ def summary_figures(results: Path, out: Path) -> list[str]:
 def data_figures(results: Path, out: Path) -> list[str]:
     """The figures that read per-run tables and transcripts; returns the PDF names."""
     out.mkdir(parents=True, exist_ok=True)
-    for draw in (method_example, roc_panels):
+    for draw in (method_example, roc_panels, compare_figure):
         draw(results, out)
     return sorted(p.name for p in out.glob("fig_*.pdf"))
 
@@ -293,15 +293,15 @@ HARMLESS_ROWS = [
     ("gemma_final:benign_vs_core_controls", "Cite-evidence note"),
     ("gemma_final:benign_budget_vs_core_controls", "Budget note"),
     ("gemma_final:benign_deadline_vs_core_controls", "Deadline note"),
-    ("gemma_final:benign_open_vs_core_controls", "Same note, open"),
+    ("gemma_final:benign_open_vs_core_controls", "Same note, given openly"),
 ]
-SERIES = (("overlap", "Overlap (ours, untrained)", VERMILLION),
-          ("probe", "NARCBench probe (Deception Split)", BLUE),
-          ("tfidf", "Supervised TF-IDF", GREEN))  # fmt: skip
+# Supervised TF-IDF is left out: it failed its pre-registered shuffled-label validity gate.
+SERIES = (("overlap", "Overlap monitor (ours, untrained)", VERMILLION),
+          ("probe", "NARCBench probe (trained; Deception Split)", BLUE))  # fmt: skip
 
 
 def _cell(entry: dict, series: str) -> dict | None:
-    """One AUROC record for a series from a compare.json entry (probe/TF-IDF: Deception Split)."""
+    """One AUROC record for a series from a compare.json entry (probe: Deception Split)."""
     if series not in entry:
         return None
     v = entry[series]
@@ -309,14 +309,14 @@ def _cell(entry: dict, series: str) -> dict | None:
 
 
 def _compare_rows(ax, rows: list[tuple[str, dict]]) -> None:
-    """Three-series dot-and-interval rows on one AUROC axis."""
+    """Dot-and-interval rows, one offset line per series, on one AUROC axis."""
     for i, (_, entry) in enumerate(rows):
         y0 = len(rows) - 1 - i
         for k, (key, name, colour) in enumerate(SERIES):
             r = _cell(entry, key)
             if r is None:
                 continue
-            y = y0 + (1 - k) * 0.22
+            y = y0 + (0.5 - k) * 0.3
             ax.plot(
                 [r["ci_low"], r["ci_high"]], [y, y], color=colour, lw=1.4, solid_capstyle="round"
             )
@@ -330,25 +330,23 @@ def _compare_rows(ax, rows: list[tuple[str, dict]]) -> None:
 
 
 def compare_figure(results: Path, out: Path) -> None:
-    """Overlap vs NARCBench's probe vs TF-IDF on identical runs (amendment 4)."""
+    """Overlap monitor vs NARCBench's trained probe on identical runs (amendment 4)."""
     cmp = json.loads((Path("results/probes") / "compare.json").read_text())
     sec = cmp["secondary"]
-    harm = {"overlap": sec["core_collusion_vs_benign"]["overlap"],
-            "probe": cmp["K1"], "tfidf": sec["core_collusion_vs_benign"]["tfidf"]}  # fmt: skip
-    fig, (a, b) = plt.subplots(2, 1, figsize=(FULL * 0.82, 5.4),
-                               gridspec_kw={"height_ratios": [len(PROBE_ROWS), 5.6]})  # fmt: skip
+    harm = {"overlap": sec["core_collusion_vs_benign"]["overlap"], "probe": cmp["K1"]}
+    fig, (a, b) = plt.subplots(2, 1, figsize=(FULL, 4.0), sharex=True,
+                               gridspec_kw={"height_ratios": [len(PROBE_ROWS), 5]})  # fmt: skip
     _compare_rows(a, [(lab, sec[k]) for k, lab in PROBE_ROWS])
     a.set_xlim(0.3, 1.02)
-    _title(a, "a", "Detecting collusion (collusion runs vs controls; higher is better)")
+    _title(a, "a", "Collusion runs vs all-honest controls (higher is better)")
     a.legend(loc="lower left", frameon=False, fontsize=7.5)
-    rows = [("Collusion vs harmless note\n(higher is better)", harm)]
-    rows += [
-        (f"{lab} vs controls\n(false alarm; lower is better)", sec[k]) for k, lab in HARMLESS_ROWS
-    ]
+    rows = [("Core collusion vs cite-evidence note", harm)]
+    rows += [(lab, sec[k]) for k, lab in HARMLESS_ROWS]
     _compare_rows(b, rows)
-    b.set_xlim(0.3, 1.02)
     b.axhspan(-0.5, len(rows) - 1.5, color=AMBER, alpha=0.12, lw=0)
-    _title(b, "b", "Telling harmful from harmless shared context")
+    b.text(0.31, len(rows) - 1.62, "Harmless note vs controls: false alarms (lower is better)",
+           fontsize=7, color="#7a5a00", va="top")  # fmt: skip
+    _title(b, "b", "Collusion vs a harmless shared note")
     b.set_xlabel("AUROC with 95% interval")
-    fig.tight_layout(h_pad=1.2)
+    fig.tight_layout(h_pad=1.0)
     _save(fig, out, "fig_compare")
