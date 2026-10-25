@@ -121,3 +121,25 @@ def analyse(
 ) -> None:
     """S1-S3 and the Holm-corrected primary family."""
     console.print(run_analyse(out_dir, stego_dir, n_boot, n_perm))
+
+
+@app.command()
+def pooled(
+    out_dirs: Annotated[
+        list[Path], typer.Option("--out-dir", help="Stego output folders (repeat).")
+    ],
+    stego_dirs: Annotated[
+        list[Path], typer.Option("--stego-dir", help="Their run folders (repeat).")
+    ],
+    n_boot: Annotated[int, typer.Option(help="Shoe-bootstrap draws.")] = 10_000,
+) -> None:
+    """S3 on several stego sets together (descriptive, amendment 5)."""
+    import json
+
+    from colx.stego.analyse import pooled_s3
+
+    result = pooled_s3(out_dirs, stego_dirs, n_boot)
+    (out_dirs[-1] / "analysis" / "pooled_s3.json").write_text(
+        json.dumps(result, indent=1, default=str)
+    )
+    console.print(result)

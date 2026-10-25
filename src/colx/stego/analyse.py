@@ -187,3 +187,19 @@ def analyse(out_dir: Path, stego_dir: Path, n_boot: int, n_perm: int) -> list[di
         )
     )
     return summary
+
+
+def pooled_s3(out_dirs: list[Path], stego_dirs: list[Path], n_boot: int) -> dict:
+    """Amendment 5: S3 on several stego sets together (descriptive estimate, not a test)."""
+    leaky = set().union(*(leaky_shoes(d) for d in stego_dirs))
+    keep = lambda d: d[~d.run_id.map(_shoe).isin(leaky)]  # noqa: E731
+    tokens = keep(
+        pd.concat([pd.read_parquet(o / "tokens.parquet") for o in out_dirs], ignore_index=True)
+    )
+    calls = keep(
+        pd.concat([pd.read_parquet(o / "calls.parquet") for o in out_dirs], ignore_index=True)
+    )
+    return {
+        "excluded_shoes": sorted(leaky),
+        **{r: s3(tokens, calls, r, n_boot) for r in ("rel", "raw")},
+    }
