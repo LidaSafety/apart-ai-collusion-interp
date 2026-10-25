@@ -301,3 +301,105 @@ def figures(
     from colx.overlap.figures import all_figures
 
     console.print(all_figures(results, out_dir))
+
+
+def _content_tables():
+    """Stage-2 prompt tables: Gemma Core (all runs), each condition's collusion runs, Transfer."""
+    import pandas as pd
+
+    from colx.narcbench.runs import load_runs
+    from colx.overlap.compare import _transfer_runs, run_frame
+    from colx.overlap.content import prompt_table
+
+    tables = {
+        "gemma": prompt_table(run_frame(load_runs(GEMMA_CORE)), pd.read_parquet(TOKENS_GEMMA))
+    }
+    for c in ("aware", "para", "independent", "benign"):
+        frame = run_frame(load_runs(STRESS_DIR / c))
+        frame = frame[frame["mode"] == "collusion"].reset_index(drop=True)
+        tables[c] = prompt_table(
+            frame, pd.read_parquet(Path("results/overlap") / c / "final_tokens.parquet")
+        )
+    transfer = pd.read_parquet("results/transfer/final_tokens.parquet")
+    from transformers import AutoTokenizer
+
+    tok = AutoTokenizer.from_pretrained(str(QWEN_HEAD))
+    transfer["token"] = transfer.token_id.map(
+        {i: tok.decode([int(i)]) for i in transfer.token_id.unique()}
+    )
+    tables["transfer"] = prompt_table(run_frame(_transfer_runs(DATASETS["transfer"][0])), transfer)
+    return tables
+
+
+TOKENS_GEMMA = Path("results/gemma/final_tokens.parquet")
+QWEN_HEAD = Path("/root/qwen3-32b-head")  # Qwen3-32B tokenizer, for Transfer token text
+
+
+@app.command()
+def content(
+    model_dir: Annotated[Path, typer.Option(help="Local Gemma-3-27B-IT snapshot.")] = Path(
+        "/dev/shm/gemma-3-27b-it"
+    ),
+    out_dir: Annotated[Path, typer.Option(help="Output folder.")] = Path("results/overlap/content"),
+    dry_run: Annotated[bool, typer.Option(help="2 runs per set; print one prompt.")] = False,
+) -> None:
+    """Amendment 2 E: Gemma rates the tokens each side of the split shares (GPU)."""
+    from colx.overlap.content import run_content
+
+    tables = _content_tables()
+    if dry_run:
+        tables = {k: v.head(2) for k, v in tables.items()}
+        console.print(tables["gemma"].prompt.iloc[0])
+        out_dir = out_dir / "dryrun"
+    console.print(run_content(tables, model_dir, out_dir, console.print))
+
+
+@app.command("extras2")
+def extras2(
+    out_dir: Annotated[Path, typer.Option(help="Output folder.")] = Path("results/overlap/extras"),
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """Amendment 2: stage-2 content judge (E) and flag-and-name (F)."""
+    import numpy as np
+    import pandas as pd
+
+    from colx.narcbench.runs import load_runs
+    from colx.overlap import extras as ex
+    from colx.overlap.compare import run_frame
+
+    res = Path("results/overlap")
+    frames, sets, lens = {}, {}, {}
+    frames["gemma"], _, sets["gemma"] = _frame_and_p1("gemma")
+    frames["transfer"], _, sets["transfer"] = _frame_and_p1("transfer")
+    for c in ("aware", "para", "independent", "benign"):
+        f = run_frame(load_runs(STRESS_DIR / c))
+        frames[c] = f[f["mode"] == "collusion"].reset_index(drop=True)
+        t = pd.read_parquet(res / c / "final_tokens.parquet")
+        sets[c] = ex.entry_sets(t[(t.rendering == "raw") & (t.position == "P1")])
+    lens = {s: ex.run_scores(frames[s], sets[s]) for s in frames}
+    stage2 = {s: pd.read_parquet(res / "content" / f"{s}.parquet") for s in frames}
+    e = ex.content_tests(frames, stage2, lens, n_boot, n_perm)
+    core_ctrl = lens["gemma"][frames["gemma"]["mode"].eq("control").to_numpy()]
+    tr_ctrl = lens["transfer"][frames["transfer"]["mode"].eq("control").to_numpy()]
+    f_out = {}
+    for s in ("gemma", "aware", "para", "independent", "benign", "transfer"):
+        mon = pd.read_parquet(res / "textmonitor" / f"{s}.parquet")
+        pairs = {
+            r: (None if p is None else [int(x) for x in p])
+            for r, p in zip(mon.run_id, mon.pair, strict=True)
+        }
+        thr = float(np.max(tr_ctrl if s == "transfer" else core_ctrl))
+        f_out[s] = ex.flag_and_name(frames[s], sets[s], lens[s], thr, pairs)
+    ex.save(
+        {"content_judge": e, "flag_and_name": f_out},
+        out_dir,
+        "amendment2",
+        "col lens-judge overlap extras2",
+    )
+    for k, v in e.items():
+        d = v["stage2_minus_lens"]
+        diff = f"{d['diff']:+.3f} (lower {d['lower_95']:+.3f})"
+        console.print(f"E {k}: stage2 {_auc(v['stage2'])} | lens {v['lens']['auroc']:.3f} | {diff}")
+    for k, v in f_out.items():
+        console.print(f"F {k}: {v}")
