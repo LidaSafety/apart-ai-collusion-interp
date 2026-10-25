@@ -55,9 +55,9 @@ We test a white-box alternative: reading what the agents' activations \emph{repr
 
 \paragraph{Our main contributions are:}
 \begin{enumerate}
-\item \textbf{A label-free coalition monitor.} On NARCBench \citep{rose2026} (Core with two LLMs as the agents, and Transfer) it beats text-overlap baselines, an LLM text monitor and, on unseen task types, the benchmark's own trained probes. It names the colluding pair, and it fires from each agent's state before its own first public message.
+\item \textbf{A label-free collusion monitor.} NARCBench \citep{rose2026} runs four-agent committees in which two agents may be instructed to collude. There, with two different LLMs as the agents, our monitor beats text-overlap baselines and an LLM text monitor. On six task types it was never developed on, it also beats the benchmark's own trained probes. It names the colluding pair, and it fires from each agent's state before its own first public message.
 \item \textbf{Pre-registered stress tests} that separate \emph{detecting collusion} from \emph{detecting exclusive context}. The monitor survives warnings, deliberate evasion, paraphrase and the loss of the private channel, but also flags harmless shared notes, secret or not.
-\item \textbf{A benchmark audit.} NARCBench-Stego's own monitor catches none of 150 collusion tables, and two leaks expose the hidden count. Separately, a plausible LLM text monitor is \emph{inverted} when Gemma judges Gemma's transcripts.
+\item \textbf{A benchmark audit.} In NARCBench's steganography tier, where colluders signal through coded table talk in a card game, the benchmark's own monitor catches none of 150 collusion tables, and two leaks expose the hidden count. Separately, a plausible LLM text monitor is \emph{inverted} when Gemma judges Gemma's transcripts.
 \end{enumerate}
 
 \noindent We found the monitor post hoc on Qwen Core; every later test was committed to a dated plan before it ran, most with a prediction. Appendix~\ref{app:predictions} lists every prediction next to its outcome, including the ones we got wrong. Exploratory results are labelled as such. Appendix~\ref{app:disclosure} states what predates the sprint.
