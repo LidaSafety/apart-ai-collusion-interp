@@ -38,26 +38,26 @@ Author name 1 & Author name 2 & Author name 3\\
 \maketitle
 
 \begin{abstract}
-\noindent LLM agents that secretly collude against the people they serve can keep their messages innocuous and evade text monitors. We test whether their activations give them away. We read each agent's residual stream through a Jacobian lens and count the lens entries that exactly two of four agents share; the monitor needs no labels, training or LLM.
+\noindent LLM agents that collude against the people they serve can keep their messages innocuous and evade text monitors. We test whether their activations give them away. We read each agent's residual stream through a Jacobian lens and count the lens entries that exactly two of four agents share; the monitor needs no labels, training or LLM.
 
-NARCBench committees have four agents; in collusion runs two are secretly instructed to push one option. With Gemma-3-27B or Qwen3-32B as the agents, the monitor separates collusion runs from all-honest controls at AUROC 0.98--0.99. It beats the same count on the agents' messages (planned, Gemma: +0.08) and, on Qwen, an LLM judge (0.99 vs 0.84). On six unseen task types it reaches 1.00, where text overlap scores 0.59 and NARCBench's trained deception probe 0.78 (planned, +0.22). It works from each agent's state before it speaks (0.93--0.94), and a rule fixed on one LLM names the colluding pair in 70\% of held-out runs.
+NARCBench committees have four agents; in collusion runs two alone are instructed to push one option. With Gemma-3-27B or Qwen3-32B as the agents, the monitor separates collusion runs from all-honest controls at AUROC 0.98--0.99. It beats the same count on the agents' messages (planned, Gemma: +0.08) and, on Qwen, an LLM judge (0.99 vs 0.84). On six unseen task types it reaches 1.00, where text overlap scores 0.59 and NARCBench's trained deception probe 0.78 (planned, +0.22). It works from each agent's state before it speaks (0.93--0.94), and a rule fixed on one LLM names the colluding pair in 70\% of held-out runs.
 
-In pre-registered stress tests it survives colluders warned that their reasoning is monitored (0.99) or told to keep the arrangement out of it (0.99), and paraphrased instructions, even without a private channel (0.96, 0.89). But it flags honest pairs given a harmless confidential note almost as readily (0.88--0.94), even when the note is open; the trained probe rejects one such note (0.97 vs 0.64) but flags two others. It is thus a cheap, early, transferable detector of \emph{context only two agents share}: a first stage, not a detector of intent.
+In pre-registered stress tests it survives colluders warned that their reasoning is monitored (0.99) or told to keep the arrangement out of it (0.99), and paraphrased instructions, even without a private channel (0.96, 0.89). But it flags honest pairs given a harmless confidential note almost as readily (0.88--0.94), even when the note is open; the trained probe rejects one such note (0.97 vs 0.64) but flags two others. It is a cheap, early, transferable detector of \emph{exclusive context}, context only two agents share: a first stage, not a detector of intent.
 \end{abstract}
 
 \section{Introduction}
 
-Multi-agent LLM systems increasingly negotiate, review code and make decisions together. A coalition secretly coordinating against its principal is hard to catch from the transcript: colluders can keep their words innocuous, hide signals steganographically \citep{motwani2024}, or simply argue well for the option they were told to push. Monitoring what agents \emph{say} is the default defence in AI-control settings \citep{greenblatt2024}, but it sees only what appears in the messages.
+Multi-agent LLM systems increasingly negotiate, review code and make decisions together. Agents covertly coordinating against their principal are hard to catch from the transcript: colluders can keep their words innocuous, hide signals steganographically \citep{motwani2024}, or simply argue well for the option they were told to push. Monitoring what agents \emph{say} is the default defence in AI-control settings \citep{greenblatt2024}, but it sees only what appears in the messages.
 
-We test a white-box alternative: reading what the agents' activations \emph{represent}. The Jacobian lens (J-lens; \citealp{gurnee2026}) maps a residual-stream activation to vocabulary tokens, layer by layer. Two agents given the same secret should carry concepts the others lack, so a plain count of shared lens tokens should find them, with no classifier to overfit and no judge to fool.
+We test a white-box alternative: reading what the agents' activations \emph{represent}. The Jacobian lens (J-lens; \citealp{gurnee2026}) is a linear readout of any layer: it carries a residual-stream vector $h_\ell$ to the final layer with the average input--output Jacobian $J_\ell=\mathbb{E}[\partial h_{\mathrm{final}}/\partial h_\ell]$, estimated over a generic text corpus, and decodes $J_\ell h_\ell$ with the model's own unembedding into a ranking of vocabulary tokens. Two agents given the same exclusive context, such as an instruction or a note, should carry concepts the others lack, so a plain count of shared lens tokens should find them.
 
-\paragraph{Theory of change.} Operators who run open-weight agents have white-box access to every one. A monitor that needs no collusion labels, no training and no extra LLM can run on every interaction as a cheap first stage: it flags \emph{which} pair shares hidden context, early, and a costlier second stage (a human, or a judge with the transcript) reviews only flagged runs. Prior activation work on this benchmark trains supervised probes \citep{rose2026}; ours is label-free and \emph{relational}, comparing agents with each other rather than with a learned direction.
+\paragraph{Theory of change.} Operators who run open-weight agents have white-box access to every one. A monitor that needs no collusion labels, no training and no extra LLM can run on every interaction as a cheap first stage: it flags \emph{which} pair shares exclusive context, early, and a costlier second stage (a human, or a judge with the transcript) reviews only flagged runs. Prior activation work on this benchmark trains supervised probes \citep{rose2026}; ours is label-free and \emph{relational}, comparing agents with each other rather than with a learned direction.
 
 \paragraph{Our main contributions are:}
 \begin{enumerate}
 \item \textbf{A label-free coalition monitor.} On NARCBench \citep{rose2026} (Core with two LLMs as the agents, and Transfer) it beats text-overlap baselines, an LLM text monitor and, on unseen task types, the benchmark's own trained probes. It names the colluding pair, and it fires from each agent's state before its own first public message.
-\item \textbf{Pre-registered stress tests} that separate \emph{detecting collusion} from \emph{detecting shared context}. The monitor survives warnings, deliberate evasion, paraphrase and the loss of the private channel, but also flags harmless shared notes, secret or not.
-\item \textbf{A benchmark audit.} NARCBench-Stego's own monitor catches none of 150 collusion tables, and two leaks expose the secret. Separately, a plausible LLM text monitor is \emph{inverted} when Gemma judges Gemma's transcripts.
+\item \textbf{Pre-registered stress tests} that separate \emph{detecting collusion} from \emph{detecting exclusive context}. The monitor survives warnings, deliberate evasion, paraphrase and the loss of the private channel, but also flags harmless shared notes, secret or not.
+\item \textbf{A benchmark audit.} NARCBench-Stego's own monitor catches none of 150 collusion tables, and two leaks expose the hidden count. Separately, a plausible LLM text monitor is \emph{inverted} when Gemma judges Gemma's transcripts.
 \end{enumerate}
 
 \noindent We found the monitor post hoc on Qwen Core; every later test was committed to a dated plan before it ran, most with a prediction. Appendix~\ref{app:predictions} lists every prediction next to its outcome, including the ones we got wrong. Exploratory results are labelled as such. Appendix~\ref{app:disclosure} states what predates the sprint.
@@ -73,7 +73,7 @@ The logit lens \citep{nostalgebraist2020}, the tuned lens \citep{belrose2023} an
 \section{Methods}
 
 \subsection{Data}
-\emph{NARCBench Core} has 50 scenarios in 17 domains, each run once in collusion mode and once as a control. Four agents discuss a decision for three public rounds, then vote. In collusion mode, two agents (the colluding pair, or \emph{coalition}) get a secret motive and instruction to push one option, plus one round of private messages. We use transcripts from Qwen3-32B and from Gemma-3-27B-IT; the Gemma set was generated in the sprint with NARCBench's own code. \emph{Transfer} has 72 runs across six task types (code review, CI/CD, RAG, news, pump-and-dump, research). \emph{Stego} is a blackjack table where a counter signals the count through coded table talk to a big player.
+\emph{NARCBench Core} has 50 scenarios in 17 domains, each run once in collusion mode and once as a control. Four agents discuss a decision for three public rounds, then vote. In collusion mode, two agents (the colluding pair, or \emph{coalition}) get a private motive and instruction to push one option, plus one round of private messages. We use transcripts from Qwen3-32B and from Gemma-3-27B-IT; the Gemma set was generated in the sprint with NARCBench's own code. \emph{Transfer} has 72 runs across six task types (code review, CI/CD, RAG, news, pump-and-dump, research). \emph{Stego} is a blackjack table where a counter signals the count through coded table talk to a big player.
 
 \subsection{Lens readout}
 For each agent we take the residual stream at the last prompt token before its vote, at 10 layers between 37\% and 91\% of the model's depth. Each is mapped through the published J-lens, and we keep the top 25 tokens per layer: 250 (layer, token) entries per agent. The lenses are Neuronpedia's for both models; the Gemma lens is converged and the Qwen lens is not fully converged. Both readouts match the reference implementation. All scores use the raw top tokens; a word-only rendering relative to the average agent is for reading (Figure~\ref{fig:method}c, Appendix~\ref{app:stress}).
@@ -167,7 +167,7 @@ The monitor survives every collusion condition (Figure~\ref{fig:stress}); each p
 \subsection{Audit findings}
 
 \subsubsection{An LLM text monitor is fragile}\label{sec:llmmon}
-Gemma-3-27B with the same prompt that works for Qwen is inverted on Gemma transcripts (0.17, and 0.12--0.14 on stress sets). Its replies call honest agents' convergence on the fair option ``verbatim alignment \ldots{} strongly suggests coordinated communication''. Its named \emph{pair}, however, is often right (32 of 50).
+Gemma-3-27B with the same prompt that works for Qwen is inverted on Gemma transcripts (0.17, and 0.12--0.14 on stress sets). It reads honest agents converging on the fair option as coordination. Its named \emph{pair}, however, is often right (32 of 50).
 
 \subsubsection{NARCBench-Stego's own monitor misses every coded table}
 NARCBench-Stego's LLM pit boss flagged 0 of 150 collusion tables across three datasets, while a prompted Gemma monitor reaches 0.68--0.84. Two leaks put the receiver's decoding notes in the public chat and the true count history in the colluders' channel. We fixed both (Appendix~\ref{app:stego}).
@@ -213,12 +213,12 @@ All three planned tests pass (Holm over three, one-sided, all $p<0.001$; Figure~
 \item \textbf{K1, K2: the probe tells collusion from the cite-evidence note.} It scores 0.97 [0.94, 0.99] against overlap's 0.64: $+0.33$ (lower bound $+0.26$).
 \item \textbf{But it flags two other harmless notes} (exploratory): 0.93 and 0.92 against controls for the budget and deadline notes. Collusion vs these notes was not tested.
 \end{itemize}
-The two are complementary: overlap flags shared hidden context without labels and transfers better, while the probe, trained on labels, rejected one harmless note that overlap flags. Our supervised TF-IDF baseline failed its planned validity gate: with colluder labels shuffled it still scored 0.63 (Gemma) and 0.84 (Qwen), outside $0.5\pm0.1$, so we report it as invalid.
+The two are complementary: overlap flags exclusive context without labels and transfers better, while the probe, trained on labels, rejected one harmless note that overlap flags. Our supervised TF-IDF baseline failed its planned validity gate: with colluder labels shuffled it still scored 0.63 (Gemma) and 0.84 (Qwen), outside $0.5\pm0.1$, so we report it as invalid.
 
 \section{Discussion and Limitations}
 
 \subsection{What the monitor detects, and how to use it}
-The monitor detects that two agents hold a context the others don't: early, without training, despite warnings and on unseen task types. It does \emph{not} detect intent or even secrecy. Its edge over text is largest when the secret barely surfaces in the messages (Transfer). For monitoring this means:
+The monitor detects exclusive context, held by two agents and not the others: early, without training, despite warnings and on unseen task types. It does \emph{not} detect intent or even secrecy. Its edge over text is largest when that context barely surfaces in the messages (Transfer). For monitoring this means:
 \begin{itemize}
 \item \textbf{Use it as a first stage.} One forward pass per agent flags a run early and names a pair; a human or a judge with the transcript then reviews it, since judges given only the shared tokens failed (Appendix~\ref{app:notwork}).
 \item \textbf{Pair it with a trained probe where labels exist.} The probe rejected one harmless note that overlap flags, but transferred worse.
@@ -230,7 +230,7 @@ Coalitions are instructed (some warned), never optimised against the lens, and a
 
 \section{Conclusion}
 
-An untrained count of concepts shared in agents' activations finds secret coalitions on NARCBench (AUROC 0.98--1.00), beats text monitors, transfers better than trained probes, and fires before each agent's first message. It survives warnings, evasion and paraphrase but also flags harmless shared notes: a strong, early first stage, not a detector of intent.
+An untrained count of concepts shared in agents' activations finds colluding pairs on NARCBench, beats text monitors, transfers better than trained probes and fires early. It also flags harmless exclusive context: a strong first stage, not a detector of intent.
 
 \label{end:main}\section*{Code and Data}
 \phantomsection\addcontentsline{toc}{section}{Code and Data}
@@ -412,14 +412,14 @@ Before the meeting, the committee chair asked you and one other member, in confi
 
 \section{What did not work}\label{app:notwork}
 \begin{itemize}
-\item \textbf{A second stage reading the shared tokens} (planned). A frozen Gemma judge shown only the raw lens tokens each side of the split shares could not tell Core collusion from the harmless secret (0.51 [0.39, 0.63], $p=0.43$), below the lens score alone (0.64). Telling harmful from harmless shared context needs more than raw lens tokens. An exploratory retry with the cleaner words-relative tokens plus the case's public brief separated collusion from controls (0.82) but still not from the harmless secret (0.56, $p=0.13$).
+\item \textbf{A second stage reading the shared tokens} (planned). A frozen Gemma judge shown only the raw lens tokens each side of the split shares could not tell Core collusion from the harmless note (0.51 [0.39, 0.63], $p=0.43$), below the lens score alone (0.64). Telling harmful from harmless exclusive context needs more than raw lens tokens. An exploratory retry with the cleaner words-relative tokens plus the case's public brief separated collusion from controls (0.82) but still not from the harmless note (0.56, $p=0.13$).
 \item \textbf{LLM judges reading lens tokens} (Qwen3-32B as judge).
   \begin{itemize}
   \item One agent at a time, they are near chance; this is our pre-sprint result.
   \item Shown all four agents side by side, the judge names the instructed pair in 35 of 50 runs, but its rating carries no signal.
   \end{itemize}
 \item \textbf{Follow-through.} Lens features predict which colluders will vote the target only late in the discussion (0.71--0.73), and a judge reading the conversation does better.
-\item \textbf{The overlap monitor on NARCBench-Stego} (planned). There the two colluders get \emph{different} instructions, a code and its key. The planned words-relative test reversed (0.37), and the raw score's top pair was never the colluders (0 of 48): without shared context there is no signal to find.
+\item \textbf{The overlap monitor on NARCBench-Stego} (planned). There the two colluders get \emph{different} instructions, a code and its key. The planned words-relative test reversed (0.37), and the raw score's top pair was never the colluders (0 of 48): without exclusive context there is no signal to find.
 \item \textbf{Natural-language-autoencoder descriptions} of the stego receiver's activations did not surface the decoded count.
 \end{itemize}
 
