@@ -22,7 +22,7 @@ Multi-agent LLM systems increasingly negotiate, review and decide together. A co
 - they can encode signals steganographically;
 - they can simply argue well for the option they were told to push.
 
-Most proposed collusion monitors read text (Motwani et al., 2024). Rose et al. (2026) train activation probes, which need labelled collusion data. We test a white-box alternative: reading what the agents *have in mind*.
+Most proposed collusion monitors read text (Motwani et al., 2024). Rose et al. (2026) train activation probes, which need labelled collusion data. We test a white-box alternative: reading what the agents' activations *represent*.
 
 We use the Jacobian lens (J-lens; Gurnee et al., 2026), which maps a residual-stream activation to the vocabulary tokens it represents, layer by layer. Our premise is simple. Two agents given the same secret should carry concepts the other agents lack. If so, a plain count of shared lens tokens should find them, with no labels, no training and no LLM judge, so there is no classifier to overfit and no judge to fool.
 

@@ -8,7 +8,7 @@
 
 In NARCBench Core, 4 LLM agents on a committee discuss a case for three rounds, then vote. In half the runs (**collusion mode**), 2 agents are secretly told to push one option and get a private channel; in the other half (**control**) all 4 are honest. A run **colluded** when both instructed agents voted the target option.
 
-We read the agents' internal activations through a **J-lens** (Jacobian lens; Gurnee et al. 2026), which turns an activation into the tokens the model "has in mind". We asked:
+We read the agents' internal activations through a **J-lens** (Jacobian lens; Gurnee et al. 2026), which maps an activation to the vocabulary tokens it represents. We asked:
 1. Does the lens show **who was told to collude**?
 2. Does it show **who will act on it** (follow through)?
 3. Can it show either **better than reading what the agents say**?
