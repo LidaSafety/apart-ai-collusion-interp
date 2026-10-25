@@ -41,6 +41,9 @@ def extract_gemma(
     ),
     out_dir: Annotated[Path, typer.Option(help="Output folder.")] = OUT / "gemma",
     dry_run: Annotated[bool, typer.Option(help="First 3 calls of Core only.")] = False,
+    only: Annotated[
+        list[str] | None, typer.Option("--set", help="Extract only these sets (repeat).")
+    ] = None,
 ) -> None:
     """Gemma Core and the stress sets with NARCBench's extraction recipe (GPU)."""
     from colx.probes.extract import extract_gemma as run
@@ -50,6 +53,8 @@ def extract_gemma(
     layers = model_layers("google/gemma-3-27b-it", 62)
     sets = {"core": (GEMMA_CORE, ("discussion", "final"), ("collusion", "control"))}
     sets |= {c: (STRESS_DIR / c, ("final",), ("collusion",)) for c in STRESS}
+    if only:
+        sets = {k: v for k, v in sets.items() if k in only}
     if dry_run:
         from colx.backends import BACKENDS
 
