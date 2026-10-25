@@ -136,3 +136,7 @@ Jorge: "there is also other types of lens like j++ lens or R lens, pls try them 
 | F3 | Held-out follow-through classifier at R3 T-start, colluders |
 
 **Labels:** all exploratory (a lens comparison, no primary claim). Block F runs after block E. Block B (Qwen3-32B stego) stays last and runs only if time allows.
+
+**Ordering note (11:50 PM ET):** block F ranks below "more stego shoes".
+- **Why:** J++'s claimed advantage is at earlier layers than the band read here. The overlap detector is near its ceiling with any lens. Lens convergence already made no difference on Gemma.
+- **When it runs:** only if S3 is clearly positive or clearly null (so more shoes wouldn't help) and there's time before about 4:30 AM ET. Otherwise it is cut and recorded as not run.
