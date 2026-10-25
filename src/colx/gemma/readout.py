@@ -17,7 +17,7 @@ from safetensors.torch import load_file
 
 from colx import provenance
 from colx.gemma.extract import POINTS
-from colx.gemma.model import LAYERS, LENS_SHA256, Unembed, load
+from colx.gemma.model import LAYERS, LENS_SHA256
 from colx.jlens.filtered import word_mask
 from colx.jlens.lens import load_maps, sha256_of
 from colx.jlens.render import printable_mask
@@ -55,16 +55,33 @@ def point_rows(
     return frames
 
 
-def write_readouts(model_dir: Path, lens_path: Path, out_dir: Path, log=print) -> dict:
-    """Check the lens hash, read every call out, save both token tables with provenance."""
-    if sha256_of(lens_path) != LENS_SHA256:
-        raise ValueError("Gemma lens sha256 does not match the plan")
-    calls = pd.read_parquet(out_dir / "calls.parquet")
-    resid = load_file(str(out_dir / "resid.safetensors"))["resid"]
-    tokenizer, model = load(model_dir)
-    unembed, vocab = Unembed(model), model.lm_head.weight.shape[0]
+def write_readouts(
+    model_dir: Path,
+    lens_path: Path,
+    out_dir: Path,
+    log=print,
+    backend: str = "gemma",
+    expected_sha: str = LENS_SHA256,
+    resid_dir: Path | None = None,
+) -> dict:
+    """Check the lens hash, read every call out, save both token tables with provenance.
+
+    `resid_dir` (default `out_dir`) holds calls.parquet and resid.safetensors, so one
+    extraction can be read with several lenses into separate folders (block F).
+    """
+    from colx.backends import BACKENDS
+
+    be = BACKENDS[backend]
+    if sha256_of(lens_path) != expected_sha:
+        raise ValueError(f"lens sha256 does not match {expected_sha}")
+    src = resid_dir or out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    calls = pd.read_parquet(src / "calls.parquet")
+    resid = load_file(str(src / "resid.safetensors"))["resid"]
+    tokenizer, model = be.load(model_dir)
+    unembed, vocab = be.unembed(model), model.lm_head.weight.shape[0]
     masks = {"raw": printable_mask(tokenizer, vocab), "rel": word_mask(tokenizer, vocab)}
-    maps = {layer: m.to(model.device) for layer, m in load_maps(lens_path, LAYERS).items()}
+    maps = {layer: m.to(model.device) for layer, m in load_maps(lens_path, be.layers).items()}
     texts: dict[int, str] = {}
     out = {}
     for phase, reads in READS.items():
@@ -77,7 +94,7 @@ def write_readouts(model_dir: Path, lens_path: Path, out_dir: Path, log=print) -
         for position, point in reads.items():
             frames += [
                 f.assign(position=position)
-                for f in point_rows(keep, sub, groups, point, maps, unembed, masks)
+                for f in point_rows(keep, sub, groups, point, maps, unembed, masks, be.layers)
             ]
             log(f"{phase} {position} done")
         table = pd.concat(frames, ignore_index=True)
@@ -86,9 +103,10 @@ def write_readouts(model_dir: Path, lens_path: Path, out_dir: Path, log=print) -
         out[phase] = table.assign(token=table.token_id.map(texts))
     meta = provenance.collect(
         "col lens-judge gemma tokens",
-        model="google/gemma-3-27b-it",
-        lens_sha256=LENS_SHA256,
-        layers=LAYERS,
+        backend=backend,
+        lens_path=str(lens_path),
+        lens_sha256=expected_sha,
+        layers=be.layers,
     )
     for phase, name in (("final", "final_tokens"), ("discussion", "turns_tokens")):
         out[phase].to_parquet(out_dir / f"{name}.parquet", index=False)

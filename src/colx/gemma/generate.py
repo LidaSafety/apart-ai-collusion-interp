@@ -74,11 +74,12 @@ def generate(
     parallel: int,
     eager: bool,
     log=print,
+    model_id: str = MODEL_ID,
 ) -> int:
     """Start the server, run core.py into `out_dir`, stop the server; return core.py's code."""
     with server_log.open("w") as handle:
         server = subprocess.Popen(
-            server_command(vllm_env, model_dir, eager),
+            server_command(vllm_env, model_dir, eager, served_name=model_id),
             stdout=handle,
             stderr=subprocess.STDOUT,
             env=os.environ | ENGINE_ENV,
@@ -89,7 +90,7 @@ def generate(
                 str(vllm_env / "bin" / "python"),
                 str(CORE_PY),
                 "--model",
-                MODEL_ID,
+                model_id,
                 "--output-dir",
                 str(out_dir),
                 "--base-url",

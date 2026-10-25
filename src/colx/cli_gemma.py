@@ -45,10 +45,13 @@ def generate(
     eager: Annotated[
         bool, typer.Option(help="vLLM --enforce-eager (no compile, no CUDA graphs).")
     ] = False,
+    model_id: Annotated[
+        str, typer.Option(help="Model id the server answers to.")
+    ] = "google/gemma-3-27b-it",
 ) -> None:
     """Generate NARCBench Core with Gemma: vLLM server plus NARCBench's unchanged core.py."""
     code = run_generate(
-        vllm_env, model_dir, core_dir, server_log, test, parallel, eager, console.print
+        vllm_env, model_dir, core_dir, server_log, test, parallel, eager, console.print, model_id
     )
     console.print(f"core.py exited with code {code}")
     raise typer.Exit(code=code)
@@ -59,9 +62,10 @@ def extract(
     model_dir: ModelDir = MODEL_DIR,
     core_dir: CoreDir = CORE_DIR,
     out_dir: Annotated[Path, typer.Option(help="Output folder.")] = OUT_DIR,
+    backend: Annotated[str, typer.Option(help="gemma, qwen or qwen4b.")] = "gemma",
 ) -> None:
     """Residuals of every call at its read points, through Gemma (GPU)."""
-    console.print(run_extract(core_dir, model_dir, out_dir, console.print))
+    console.print(run_extract(core_dir, model_dir, out_dir, console.print, backend))
 
 
 @app.command()
@@ -84,9 +88,19 @@ def tokens(
     model_dir: ModelDir = MODEL_DIR,
     lens: Annotated[Path, typer.Option(help="Gemma J-lens file.")] = LENS_PATH,
     out_dir: Annotated[Path, typer.Option(help="Output folder.")] = OUT_DIR,
+    backend: Annotated[str, typer.Option(help="gemma, qwen or qwen4b.")] = "gemma",
+    expected_sha: Annotated[
+        str | None, typer.Option(help="Lens sha256 (default: the backend's).")
+    ] = None,
+    resid_dir: Annotated[
+        Path | None, typer.Option(help="Folder with calls/resid (default: out-dir).")
+    ] = None,
 ) -> None:
     """Raw and words-relative top-25 lens tokens at P1, P2 and every discussion turn (GPU)."""
-    console.print(write_readouts(model_dir, lens, out_dir, console.print))
+    from colx.backends import BACKENDS
+
+    sha = expected_sha or BACKENDS[backend].lens_sha256
+    console.print(write_readouts(model_dir, lens, out_dir, console.print, backend, sha, resid_dir))
 
 
 @app.command()

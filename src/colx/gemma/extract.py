@@ -18,7 +18,7 @@ import torch
 from safetensors.torch import save_file
 
 from colx.gemma.calls import load_calls
-from colx.gemma.model import LAYERS, decoder_layers, load, render
+from colx.gemma.model import LAYERS, decoder_layers, render
 
 POINTS = ("start", "end", "p2")
 
@@ -71,9 +71,15 @@ def forward_points(
     return out.to(torch.bfloat16).cpu()
 
 
-def extract(core_dir: Path, model_dir: Path, out_dir: Path, log=print) -> dict:
+def extract(
+    core_dir: Path, model_dir: Path, out_dir: Path, log=print, backend: str = "gemma"
+) -> dict:
     """Forward every call of every run; save the index table and residuals."""
-    tokenizer, model = load(model_dir)
+    from colx.backends import BACKENDS
+
+    be = BACKENDS[backend]
+    tokenizer, model = be.load(model_dir)
+    blocks = be.blocks(model)
     rows, tensors, start = [], [], time.time()
     runs = sorted(p for p in core_dir.iterdir() if p.is_dir())
     for n, run_dir in enumerate(runs):
@@ -82,8 +88,9 @@ def extract(core_dir: Path, model_dir: Path, out_dir: Path, log=print) -> dict:
         for call in load_calls(run_dir):
             if call["phase"] == "private":
                 continue
-            ids, points = read_points(tokenizer, call, last if call["phase"] == "final" else None)
-            tensors.append(forward_points(model, ids, points))
+            last_msg = last if call["phase"] == "final" else None
+            ids, points = read_points(tokenizer, call, last_msg, render_fn=be.render)
+            tensors.append(forward_points(model, ids, points, blocks, be.layers))
             rows.append(
                 {k: call[k] for k in ("run_id", "agent", "role", "phase", "round")}
                 | {f"pos_{p}": points[p] for p in POINTS}
