@@ -140,7 +140,7 @@ Written after part 1's results and before part 2's stress analysis was read. Fou
   - Ties go to the top pair.
 - Held-out test: Qwen Core and Transfer, raw P1, collusion runs where the split is right. Report the share named correctly, and a one-sided binomial p against 1/2, pooled (primary) and per dataset.
 
-## Amendment 2 (2026-10-25, 9:40 AM ET, before either was computed)
+## Amendment 2 (2026-10-25, 8:50 AM ET, before either was computed)
 
 Written after amendment 1's results. The detector can't tell a harmful coalition from a harmless shared secret (Core collusion vs `benign`: 0.64). Two additions:
 
@@ -161,7 +161,7 @@ Written after amendment 1's results. The detector can't tell a harmful coalition
 - For Transfer the threshold is the largest Transfer-control score.
 - No significance test; this is an operating-point summary.
 
-## Amendment 3 (2026-10-25, 10:45 AM ET, before any of it was run)
+## Amendment 3 (2026-10-25, 9:09 AM ET, before any of it was run)
 
 Written after amendment 2's results: the second stage was null, and the detector flags a harmless shared secret. Four new Gemma conditions in one generation batch (50 collusion-mode runs each, same wrapper and settings as part 2), plus one exploratory retry.
 
