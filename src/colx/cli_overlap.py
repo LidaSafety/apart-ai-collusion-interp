@@ -288,3 +288,16 @@ def _qwen_discussion_judge(frame):
     return pd.DataFrame(
         {"run_id": s.run_id.to_numpy(), "rating": s.rating.to_numpy(), "pair": pairs}
     )
+
+
+@app.command()
+def figures(
+    results: Annotated[Path, typer.Option(help="Overlap results folder.")] = Path(
+        "results/overlap"
+    ),
+    out_dir: Annotated[Path, typer.Option(help="Where the PNGs go.")] = Path("docs/sprint/figures"),
+) -> None:
+    """Static report figures from the saved results (no recomputation)."""
+    from colx.overlap.figures import all_figures
+
+    console.print(all_figures(results, out_dir))
