@@ -196,3 +196,62 @@ Written after amendment 2's results: the second stage was null, and the detector
 | `benign_open` vs controls | 0.75–0.92, a little below secret `benign` | ~60% |
 | G2, secret vs open note | 0.55–0.65, probably not significant | ~60% |
 | Text overlap on `benign_open` | above secret `benign` | ~60% |
+
+## Amendment 4 (2026-10-25, 10:45 AM ET, before any probe or TF-IDF result existed)
+
+Reproduce NARCBench's deception probes (Rose et al., arXiv 2604.01151 v5) and a supervised TF-IDF baseline, and compare both with the overlap monitor on identical runs.
+
+**Recipe source.** The paper (§5.2–5.3, App. C, E, F, J) and its released code, `third_party/narcbench/probes/reproduce_LR.py` and `extraction/extract_core.py` at the pinned commit `85fea3b`. Where they differ, the released code is followed and the paper-text variant is reported as a sensitivity.
+
+To guarantee fidelity, their functions are **imported read-only**, not re-typed:
+- `train_deception_probe`, `build_groups`, `compute_scores`, `evaluate`, `held_out_cv_layer`;
+- `_build_gen_text` and `ActivationHooks`.
+
+**Recipe, as the code does it:**
+- **Read position:** the last token of the chat-rendered system + user + response (`_build_gen_text`), at the output of each layer in the band.
+- **Core:** public discussion calls, averaged over rounds 1–3 per agent.
+- **Transfer and stress sets:** the final call.
+- **Probe:** collusion runs only, public channel, every discussion sample. Honest samples are downsampled to the colluder count (seeded). Then `StandardScaler`, Gaussian augmentation (4 copies, σ = 0.05; on in the released code, off in the paper's main text), and `LogisticRegression(C=25, l2, liblinear, max_iter=8)`. The unit coefficient vector is the direction.
+- **Run statistics:**
+  - Peak Suspicion, Deception Split, Activation Alignment (negated mean pairwise cosine);
+  - Asymmetry Probe and Sorted Concatenation (PCA-50), with `LogisticRegression(C=0.01, liblinear)` trained on Core runs.
+- **Evaluation:** Core uses leave-one-domain-out, averaging per-fold AUROC; Transfer and stress sets are zero-shot from a probe trained on all of Core. Means are over the layer band and seeds 0–9.
+
+**Models and data:**
+- **Qwen3-32B: exact recipe on stored activations.** The stored `chat_end` position was verified equal to `_build_gen_text`'s last token on all 1,600 public Core calls. The layers are 26–30, from their `config.MODEL_LAYERS`. Core and Transfer both have stored activations.
+- **Gemma-3-27B-IT: their recipe for an unlisted model.** That's the middle 5 layers (`config.default_layers`: 62 layers → 29–33), extracted freshly with their `_build_gen_text` and `ActivationHooks`, on:
+  - Gemma Core (all public calls);
+  - the final calls of all 8 stress sets (`aware`, `para`, `independent`, `benign`, `evade`, `benign_budget`, `benign_deadline`, `benign_open`).
+- **Differences from the paper that remain:**
+  - full-precision models instead of AWQ;
+  - our own transcripts;
+  - no manual "coordination visible" filter (their J.7). The released code trains on all collusion runs, and we follow the code.
+
+**Supervised TF-IDF baseline (the text twin of the probe):**
+- Each agent's own public discussion messages (names removed), `TfidfVectorizer()` defaults, then `LogisticRegression()` defaults.
+- Trained colluder vs honest on Core collusion runs with the same leave-domain-out folds and downsampling.
+- The per-agent score is the decision function, fed to Peak Suspicion, Deception Split and Asymmetry.
+- **Validity gate:** the same pipeline with colluder labels shuffled within runs must give a Core AUROC within 0.5 ± 0.1. Otherwise TF-IDF results are reported as invalid.
+
+**Tests** (pooled AUROC over the runs, with scenario bootstrap and shuffles as elsewhere in this plan, plus the paper's per-fold and per-family means for comparability):
+- **Reproduction check (descriptive):** Qwen Core leave-domain-out (paper: 1.00) and Qwen Transfer (paper Table 2: SC 0.82, AA 0.48, PS 0.84, DS 0.88, AP 0.87).
+- **Primary family (Holm, one-sided α = 0.05; Deception Split, the paper's GLRT statistic for k = 2, is the probe's primary statistic):**
+  - **K1:** probe, Gemma Core collusion vs `benign` > 0.5. Does the deception probe tell real collusion from a harmless shared secret?
+  - **K2:** probe minus overlap (lens raw) on the same contrast > 0 (paired bootstrap). Does it do so better than overlap?
+  - **K3:** overlap minus probe on Qwen Transfer > 0 (paired bootstrap). Does the label-free overlap transfer better than the trained probe?
+- **Secondary:**
+  - all five statistics everywhere;
+  - the probe on each stress set vs Core controls;
+  - TF-IDF everywhere;
+  - a two-stage combination (descriptive): overlap flags at 0 false alarms, then the probe's Deception Split ranks.
+
+**Predictions:**
+
+| Test | Prediction | Confidence |
+|---|---|---|
+| Qwen Core reproduction | ~1.0 | ~80% |
+| Qwen Transfer, Deception Split | 0.75–0.90 | ~60% |
+| K1 passes | probe ≥ 0.75 on collusion vs benign | ~60% |
+| K2 passes | probe better than overlap's 0.64 there | ~55% |
+| K3 passes | overlap 1.00 vs probe below 0.95 | ~65% |
+| TF-IDF | high on Core (≥ 0.9), weak on Transfer (≤ 0.7), passes its null gate | ~60% |
