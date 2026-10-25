@@ -14,6 +14,7 @@ from colx.cli_gemma import app as gemma_app
 from colx.cli_joint import app as joint_app
 from colx.cli_lenscmp import app as lenscmp_app
 from colx.cli_nla import app as nla_app
+from colx.cli_overlap import app as overlap_app
 from colx.cli_private import app as private_app
 from colx.cli_stego import app as stego_app
 from colx.cli_transfer import app as transfer_app
@@ -38,6 +39,7 @@ app.add_typer(transfer_app, name="transfer")
 app.add_typer(private_app, name="private")
 app.add_typer(nla_app, name="nla")
 app.add_typer(lenscmp_app, name="lenscmp")
+app.add_typer(overlap_app, name="overlap")
 console = Console()
 
 CORE_DIR = Path("third_party/narcbench/data/raw/qwen3_32b/core")
