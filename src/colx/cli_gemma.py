@@ -12,6 +12,7 @@ from colx.gemma.extract import extract as run_extract
 from colx.gemma.gate import api_errors, gate
 from colx.gemma.generate import generate as run_generate
 from colx.gemma.readout import write_readouts
+from colx.gemma.reference import write_check
 from colx.narcbench.write import write_label_tables
 
 app = typer.Typer(no_args_is_help=True, help="Gemma-3-27B replication with a converged lens.")
@@ -98,3 +99,17 @@ def analyse(
     console.print(
         pd.DataFrame(run_analyse(out_dir, n_boot, n_perm)).round(3).to_string(index=False)
     )
+
+
+@app.command("check-lens")
+def check_lens(
+    model_dir: ModelDir = MODEL_DIR,
+    lens: Annotated[Path, typer.Option(help="Gemma J-lens file.")] = LENS_PATH,
+    core_dir: CoreDir = CORE_DIR,
+    out_dir: Annotated[Path, typer.Option(help="Output folder.")] = OUT_DIR,
+) -> None:
+    """Our Gemma readout vs the pinned jacobian-lens library at layer 41 (GPU)."""
+    result = write_check(model_dir, lens, core_dir, out_dir)
+    console.print({k: v for k, v in result.items() if k != "reference_top25"})
+    if not result["passes"]:
+        raise typer.Exit(code=1)
