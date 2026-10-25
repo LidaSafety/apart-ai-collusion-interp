@@ -53,3 +53,32 @@ def describe(
 ) -> None:
     """NLA descriptions of the stego S3 units and the Core P1 activations (GPU)."""
     console.print(describe_all(model_dir, gemma_dir, stego_dir, out_dir, console.print))
+
+
+@app.command()
+def judge(
+    model_dir: Annotated[Path, typer.Option(help="Gemma-3-27B-IT folder.")] = Path(
+        "/dev/shm/gemma-3-27b-it"
+    ),
+    nla_dir: Annotated[Path, typer.Option(help="Block E outputs.")] = Path("results/nla"),
+    gemma_dir: Annotated[Path, typer.Option(help="Gemma Core outputs.")] = Path("results/gemma"),
+) -> None:
+    """E1 and E2: a frozen Gemma judge over the NLA descriptions (GPU)."""
+    from colx.nla.judge import run_judges
+
+    console.print(run_judges(model_dir, nla_dir, gemma_dir, console.print))
+
+
+@app.command()
+def analyse(
+    nla_dir: Annotated[Path, typer.Option(help="Block E outputs.")] = Path("results/nla"),
+    gemma_dir: Annotated[Path, typer.Option(help="Gemma Core outputs.")] = Path("results/gemma"),
+    stego_runs: Annotated[Path, typer.Option(help="Stego run folders.")] = Path(
+        "/root/narcbench-gemma/stego"
+    ),
+    n_boot: Annotated[int, typer.Option(help="Bootstrap draws.")] = 10_000,
+) -> None:
+    """E1-E3."""
+    from colx.nla.analyse import analyse as run
+
+    console.print(run(nla_dir, gemma_dir, stego_runs, n_boot))
