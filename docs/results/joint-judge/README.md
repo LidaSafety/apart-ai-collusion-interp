@@ -142,5 +142,5 @@ uv run col lens-judge joint analyse
 ```
 
 - **Logs:** `results/logs/2026-10-24T20-54_joint-judge.log` (run) and `results/logs/2026-10-24T22-59_joint-analyse.log` (analysis).
-- **Backup:** `/workspace/backups/joint-judge-2026-10-24/`.
+- **Backup:** `/workspace/lens-judge/joint-judge/`.
 - **Provenance** (in every output's `.meta.json`): seed 0; repo `8638a29`; Qwen/Qwen3-32B @ 9216db5; lens sha256 0af5ccf2…; NARCBench @ 85fea3b; jacobian-lens @ 581d398; transformers 5.19.0, torch 2.14.1.

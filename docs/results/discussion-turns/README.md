@@ -117,5 +117,5 @@ uv run col lens-judge turns analyse                          # CPU; ~4 min
 ```
 
 - **Logs:** `results/logs/2026-10-24T23-22_turns-tokens.log` and `results/logs/2026-10-24T23-30_turns-analyse.log`.
-- **Backup:** `/workspace/backups/discussion-turns-2026-10-24/`.
+- **Backup:** `/workspace/lens-judge/discussion-turns/`.
 - **Provenance:** seed 0; Qwen/Qwen3-32B @ 9216db5; lens sha256 0af5ccf2…; NARCBench @ 85fea3b; repo `7a3538c`.
