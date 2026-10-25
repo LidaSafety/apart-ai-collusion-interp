@@ -241,3 +241,6 @@ results/nla/
 results/qwen4b*/
 results/stego-*/
 results/overlap/
+docs/sprint/latex/*.aux
+docs/sprint/latex/*.out
+docs/sprint/latex/*.log
