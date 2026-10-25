@@ -5,6 +5,11 @@ Experiments on multi-agent collusion in LLM agents: detection, fragility, and co
 - **Package:** `colx` · **CLI:** `col`
 - **Upstream:** [`aaronrose227/narcbench`](https://github.com/aaronrose227/narcbench) is pinned as the `third_party/narcbench/` git submodule; released data comes from HF `aaronrose227/narcbench` into `data/` (gitignored).
 
+## Results
+
+- **Sprint report:** [`docs/sprint/latex/report.pdf`](docs/sprint/latex/report.pdf), a label-free activation monitor for hidden coalitions (Apart AI Collusion Research Sprint, Oct 2026).
+- **Per experiment:** `docs/results/<experiment>/README.md`, each with its pre-registered plan in `docs/plans/`. The series overview is [`docs/results/lens-judge-series.md`](docs/results/lens-judge-series.md).
+
 ## Setup
 
 ```bash
