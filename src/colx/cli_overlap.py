@@ -314,8 +314,10 @@ def figures(
     """Static report figures from the saved results (no recomputation)."""
     from colx.overlap.anatomy import anatomy_figure
     from colx.overlap.figures import data_figures, summary_figures
+    from colx.stego.roc import stego_roc_figure
 
     anatomy_figure(out_dir)
+    stego_roc_figure(out_dir)
     console.print(summary_figures(results, out_dir) + data_figures(results, out_dir))
 
 
