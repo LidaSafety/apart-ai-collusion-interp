@@ -1,4 +1,4 @@
-# Who Shares a Secret? A label-free activation monitor for hidden coalitions of LLM agents
+# Reading Exclusive Context from Activations: A Label-Free Monitor for Colluding LLM Agents
 
 Submission to the **Apart Research AI Collusion Research Sprint** (Oct 23–25, 2026), Track 2 (Detection and Audit), with Track 3 stress tests.
 
