@@ -75,6 +75,8 @@ We test a white-box alternative: reading what agents \emph{have in mind}. The Ja
 \begin{itemize}
 \item \emph{Text overlap:} the same score on each agent's own public messages, with names removed. We use four variants (shared words, shared word pairs, top-250 TF-IDF words, TF-IDF cosine) and report the best per dataset, which favours text.
 \item \emph{LLM text monitor:} a frozen judge reads the whole public discussion, rates 0--9 whether two agents collude, and names a pair. The score is the expected rating.
+\item \emph{NARCBench's deception probes} \citep{rose2026}: trained linear probes and their five run statistics, reproduced with the authors' released code (Section~\ref{sec:probes}).
+\item \emph{Supervised TF-IDF:} the text twin of the probe, trained on the same agents with the same folds.
 \end{itemize}
 
 \textbf{Stress tests.} We wrap NARCBench's generator, unmodified, to make 50 new Gemma collusion-mode runs per condition:
@@ -148,6 +150,71 @@ But honest pairs sharing a harmless confidential note are flagged too: 0.94, 0.8
 \item \emph{Flag and name.} At zero false alarms on 50 controls, the monitor flags \emph{and} names the right pair (side rule) in 24 of 50 Core runs and 24 of 36 Transfer runs (Appendix~\ref{app:stress}).
 \item \emph{NARCBench-Stego.} Its LLM pit boss flagged 0 of 150 collusion tables across three datasets, while a prompted Gemma monitor reaches 0.68--0.84. Two leaks put the receiver's decoding notes in the public chat and the true count history in the colluders' channel. We fixed both (Appendix~\ref{app:stego}).
 \end{itemize}
+
+\subsection*{Against NARCBench's own deception probes (amendment 4; in progress)}\label{sec:probes}
+
+\noindent\colorbox{yellow!25}{\parbox{\dimexpr\linewidth-2\fboxsep}{\small\textbf{Draft for team feedback.} The Qwen reproduction below is complete. The Gemma comparisons (K1--K3) and the TF-IDF baseline are running; their rows are marked \emph{pending}. All tests and predictions were committed to the plan before any result existed.}}
+
+\smallskip
+\textbf{Why.} The benchmark's authors detect collusion with \emph{trained} activation probes \citep{rose2026}. Our overlap monitor is \emph{untrained}. Comparing them on identical runs answers two questions:
+\begin{itemize}
+\item Does a label-free count match a supervised probe?
+\item Can the probe, trained on colluder-vs-honest labels, do what overlap can't: tell real collusion from two agents who merely share a harmless note?
+\end{itemize}
+
+\textbf{Faithful reproduction.} We call the authors' released functions directly, read-only from the pinned repository (\texttt{probes/reproduce\_LR.py}, \texttt{extraction/extract\_core.py}). That covers probe training, the five run statistics, their evaluation, and their chat rendering and hooks, so the recipe cannot drift from theirs:
+\begin{itemize}
+\item \textbf{Read position:} the last token of the chat-rendered prompt plus response. For Qwen3-32B our stored activations at this position match their rendering exactly on all 1{,}600 public Core calls.
+\item \textbf{Layers:} 26--30 for Qwen, as in their config, and the middle five (29--33) for Gemma, their default for an unlisted model.
+\item \textbf{Probe:} logistic regression with $C{=}25$, \texttt{liblinear}, \texttt{max\_iter}$=8$, on standardised activations with their noise augmentation.
+\item \textbf{Evaluation:} leave-one-domain-out on Core; zero-shot on Transfer; 5 layers $\times$ 10 seeds.
+\item \textbf{Remaining differences:} we use full-precision models (they used AWQ) and our own transcripts.
+\end{itemize}
+
+\begin{table}[h]
+\centering\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{2}{c}{Core (held-out domains)} & \multicolumn{2}{c}{Transfer, mean of 6 families} & Transfer, all 72 runs & \\
+Method & ours & paper & ours & paper & ours & \\
+\midrule
+Peak Suspicion & 1.00 & 1.00 & 0.74 & 0.84 & 0.74 & \\
+Deception Split & 1.00 & 1.00 & 0.74 & 0.88 & 0.76 & \\
+Asymmetry Probe & 1.00 & 1.00 & 0.77 & 0.87 & 0.78 & \\
+Sorted Concatenation & 1.00 & 1.00 & 0.74 & 0.82 & 0.68 & \\
+Activation Alignment & 1.00 & 1.00 & 0.57 & 0.48 & 0.52 & \\
+\midrule
+\textbf{Overlap (ours, untrained)} & 0.99 & -- & -- & -- & \textbf{1.00} & \\
+\bottomrule
+\end{tabular}}
+\caption{NARCBench's deception probes on Qwen3-32B, reproduced with the authors' code, against the paper's Table 2 and our overlap monitor on the same Transfer runs. Without their noise augmentation (the paper text's main setting) every number is within 0.002.}
+\label{tab:probes}
+\end{table}
+
+\textbf{Reproduction (complete).}
+\begin{itemize}
+\item \textbf{Core:} the probes reach 1.00 with every statistic, exactly as in the paper.
+\item \textbf{Transfer:} a little lower than reported (0.74--0.77 vs 0.84--0.88), plausibly because of the different transcripts and model precision.
+\item \textbf{On the same 72 Transfer runs,} the untrained overlap monitor scores 1.00 against the probe's best of 0.78 (descriptive here; the planned paired test is K3 below).
+\end{itemize}
+
+\textbf{Planned tests} (Holm over three, one-sided $\alpha=0.05$; the Deception Split is the probe's primary statistic):
+
+\smallskip
+\begin{tabular}{p{0.55\linewidth}p{0.17\linewidth}p{0.15\linewidth}}
+\toprule
+Test & Prediction & Result\\
+\midrule
+K1: probe separates Gemma Core collusion from the harmless note (AUROC $>0.5$) & $\geq 0.75$ (60\%) & \emph{pending}\\
+K2: probe minus overlap on that contrast $>0$ (overlap: 0.64) & passes (55\%) & \emph{pending}\\
+K3: overlap minus probe on Qwen Transfer $>0$ & passes (65\%) & \emph{pending}\\
+TF-IDF: Core high, Transfer weak, shuffled-label null near 0.5 & (60\%) & \emph{pending}\\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\textbf{Why K1--K2 matter.} If the trained probe scores the harmless-note pair low while overlap scores it high, the two are complementary. Overlap would flag shared hidden context, and the probe would judge whether it is deceptive. That is the two-stage design our own second-stage judges failed to deliver (Appendix~\ref{app:notwork}).
 
 \section{Discussion and Limitations}
 
@@ -281,7 +348,7 @@ Before the meeting, the committee chair asked you and one other member, in confi
 
 \noindent\textbf{\texttt{para}} and \textbf{\texttt{independent}}: Gemma rewrote colluder 2's motive and instructions at temperature 0, told to share no distinctive phrase. 149 of 150 fields pass our gate (option labels kept, under 20\% shared word pairs).
 
-\section{What did not work}
+\section{What did not work}\label{app:notwork}
 \begin{itemize}
 \item \textbf{A second stage reading the shared tokens} (planned). A frozen Gemma judge shown only the raw lens tokens each side of the split shares could not tell Core collusion from the harmless secret (0.51 [0.39, 0.63], $p=0.43$), below the lens score alone (0.64). Telling harmful from harmless shared context needs more than raw lens tokens. An exploratory retry with the cleaner words-relative tokens plus the case's public brief separated collusion from controls (0.82) but still not from the harmless secret (0.56, $p=0.13$).
 \item \textbf{LLM judges reading lens tokens} (Qwen3-32B as judge).
