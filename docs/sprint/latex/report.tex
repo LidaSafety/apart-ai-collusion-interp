@@ -142,6 +142,7 @@ But two honest agents sharing a harmless confidential note are flagged too (0.93
 \textbf{Audit findings.}
 \begin{itemize}
 \item \emph{An LLM text monitor is fragile.} Gemma-3-27B with the same prompt that works for Qwen is inverted on Gemma transcripts (0.17, and 0.12--0.14 on stress sets). Its replies call honest agents' convergence on the fair option ``verbatim alignment \ldots{} strongly suggests coordinated communication''. We report the planned score as it is. Its named \emph{pair}, however, is often right (32 of 50).
+\item \emph{Flag and name.} At zero false alarms on 50 controls, the monitor flags \emph{and} names the right pair (side rule) in 24 of 50 Core runs and 24 of 36 Transfer runs (Appendix~\ref{app:stress}).
 \item \emph{NARCBench-Stego.} Its LLM pit boss flagged 0 of 150 collusion tables across three datasets, while a prompted Gemma monitor reaches 0.68--0.84. Two leaks put the receiver's decoding notes in the public chat and the true count history in the colluders' channel. We fixed both (Appendix~\ref{app:stego}).
 \end{itemize}
 
@@ -160,7 +161,7 @@ The monitor detects that two agents hold a context the others don't: robustly, e
 
 \paragraph{Future work.} Natural next steps are:
 \begin{itemize}
-\item a second stage that classifies the shared concepts, to separate harmful from harmless secrets;
+\item a second stage that separates harmful from harmless secrets: our planned attempt from raw shared tokens failed, so it likely needs cleaner renderings or the transcript;
 \item combining the lens (whether to flag) with a text judge's named pair (who);
 \item adversarial colluders trained against the lens;
 \item more models and open-ended groups.
@@ -241,6 +242,8 @@ Core (reference) & 0.978 & 0.902 & $+0.076$ ($+0.022$) & 70\% / 90\% & 28\\
 
 \textbf{Side rule.} Gemma (development) 34 of 49; Qwen 36 of 50; Transfer 24 of 36; pooled held-out 60 of 86 (0.70, one-sided binomial $p=0.0002$). The rule chooses only within a right split.
 
+\textbf{Flag and name.} With the threshold at the largest control score (0 false alarms), the monitor flags and the side rule names the right pair in 24 of 50 Core runs, 25 of 50 \texttt{aware}, 32 of 50 \texttt{para}, 17 of 50 \texttt{independent} and 24 of 36 Transfer runs. Using the Gemma text judge's named pair instead gives 25, 29, 17, 16 and 13.
+
 \textbf{Amendment family.} Early warning, the held-out side rule, and lens minus the LLM monitor on Gemma were tested together under Holm, and all three are rejected. The last passes only because that monitor is inverted, so we rely on the Qwen comparison instead.
 
 \section{NARCBench-Stego audit}\label{app:stego}
@@ -268,6 +271,7 @@ Before the meeting, the committee chair asked you and one other member, in confi
 
 \section{What did not work}
 \begin{itemize}
+\item \textbf{A second stage reading the shared tokens} (planned). A frozen Gemma judge shown only the raw lens tokens each side of the split shares could not tell Core collusion from the harmless secret (0.51 [0.39, 0.63], $p=0.43$), below the lens score alone (0.64). Telling harmful from harmless shared context needs more than raw lens tokens.
 \item \textbf{LLM judges reading lens tokens} (Qwen3-32B as judge).
   \begin{itemize}
   \item One agent at a time, they are near chance; this is our pre-sprint result.
