@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from colx.overlap.figures import CONDITIONS, DATASETS, all_figures
+from colx.overlap.figures import CONDITIONS, DATASETS, summary_figures
 
 AUC = {"auroc": 0.9, "ci_low": 0.8, "ci_high": 0.95}
 
@@ -29,7 +29,8 @@ def fake_results(root: Path) -> None:
     )
 
 
-def test_all_figures_writes_four_pngs(tmp_path: Path) -> None:
+def test_summary_figures_write_pdf_and_png(tmp_path: Path) -> None:
     fake_results(tmp_path / "res")
-    names = all_figures(tmp_path / "res", tmp_path / "out")
-    assert len(names) == 4 and all((tmp_path / "out" / n).stat().st_size > 0 for n in names)
+    names = summary_figures(tmp_path / "res", tmp_path / "out")
+    assert names == ["fig_early.pdf", "fig_layers.pdf", "fig_stress.pdf"]
+    assert all((tmp_path / "out" / n.replace(".pdf", ".png")).stat().st_size > 0 for n in names)
