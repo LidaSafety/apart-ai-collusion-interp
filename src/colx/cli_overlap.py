@@ -116,3 +116,149 @@ def stress(
         console.print(f"{c:12s} behaviour {r['behaviour']}")
     for key in ("primary_holm", "core_vs_benign_lens_raw", "operating_point_lens_raw"):
         console.print(key, record[key])
+
+
+@app.command("text-monitor")
+def text_monitor(
+    model_dir: Annotated[Path, typer.Option(help="Local Gemma-3-27B-IT snapshot.")] = Path(
+        "/dev/shm/gemma-3-27b-it"
+    ),
+    out_dir: Annotated[Path, typer.Option(help="Output folder.")] = Path(
+        "results/overlap/textmonitor"
+    ),
+    dry_run: Annotated[bool, typer.Option(help="2 runs per set, format checks only.")] = False,
+) -> None:
+    """Amendment 1 D: Gemma reads each run's discussion and rates collusion 0-9 (GPU)."""
+    from colx.narcbench.runs import load_runs
+    from colx.overlap.compare import _transfer_runs
+    from colx.overlap.textmonitor import run_monitor
+
+    sets = {"gemma": (load_runs(GEMMA_CORE), False)}
+    for c in ("aware", "para", "independent", "benign"):
+        runs = [r for r in load_runs(STRESS_DIR / c) if r.mode == "collusion"]
+        sets[c] = (runs, False)
+    sets["transfer"] = (_transfer_runs(DATASETS["transfer"][0]), True)
+    if dry_run:
+        sets = {k: (v[0][:2], v[1]) for k, v in sets.items()}
+        out_dir = out_dir / "dryrun"
+    console.print(run_monitor(sets, model_dir, out_dir, console.print))
+
+
+TURNS = {
+    "gemma": Path("results/gemma/turns_tokens.parquet"),
+    "qwen": Path("results/discussion-turns/turns_tokens.parquet"),
+}
+
+
+def _auc(r: dict) -> str:
+    """An AUROC record as "0.944 [0.903, 0.979] p=0.0001"."""
+    return f"{r['auroc']:.3f} [{r['ci_low']:.3f}, {r['ci_high']:.3f}] p={r['p']:.4f}"
+
+
+def _frame_and_p1(name: str):
+    """Run frame and raw P1 entry sets of one part-1 dataset."""
+    from colx.narcbench.runs import load_runs
+    from colx.overlap.compare import _transfer_runs, load_tokens, run_frame
+    from colx.overlap.extras import entry_sets
+
+    folder, tokens = DATASETS[name]
+    runs = _transfer_runs(folder) if name == "transfer" else load_runs(folder)
+    t = load_tokens(tokens)
+    raw = t[(t.rendering == "raw") & (t.position == "P1")]
+    return run_frame(runs), raw, entry_sets(raw)
+
+
+@app.command()
+def extras(
+    out_dir: Annotated[Path, typer.Option(help="Output folder.")] = Path("results/overlap/extras"),
+    monitor_dir: Annotated[Path, typer.Option(help="LLM text monitor outputs.")] = Path(
+        "results/overlap/textmonitor"
+    ),
+    n_boot: Annotated[int, typer.Option(help="Scenario-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """Amendment 1: early warning (A), side rule (B), layers (C), LLM text monitor (D)."""
+    import pandas as pd
+
+    from colx.overlap import extras as ex
+
+    base = {n: _frame_and_p1(n) for n in ("gemma", "qwen", "transfer")}
+    early = {}
+    for n, path in TURNS.items():
+        turns = pd.read_parquet(
+            path, columns=["run_id", "agent", "round", "position", "layer", "rendering", "token_id"]
+        )
+        early[n] = ex.early_warning(base[n][0], turns, n_boot, n_perm)
+        for r in early[n]:
+            console.print(f"A {n} R{r['round']} T-start {r['rendering']}: {_auc(r)}")
+    ex.save({"early_warning": early}, out_dir, "early_warning", "col lens-judge overlap extras")
+
+    side = {n: ex.side_test(base[n][0], base[n][2]) for n in base}
+    held = [side["qwen"], side["transfer"]]
+    right, named = (
+        sum(s["named_right"] for s in held),
+        sum(s["runs_with_right_split"] for s in held),
+    )
+    from scipy.stats import binomtest
+
+    side["heldout_pooled"] = {
+        "named_right": right,
+        "runs_with_right_split": named,
+        "share": right / named,
+        "p": float(binomtest(right, named, 0.5, alternative="greater").pvalue),
+    }
+    side["gemma"]["note"] = "development set: the rule was chosen here"
+    ex.save({"side_rule": side}, out_dir, "side_rule", "col lens-judge overlap extras")
+    console.print("B", side)
+
+    layers = {n: ex.layer_aurocs(base[n][0], base[n][1]) for n in base}
+    ex.save({"layers": layers}, out_dir, "layers", "col lens-judge overlap extras")
+    console.print("C", {n: [round(r["auroc"], 2) for r in v] for n, v in layers.items()})
+
+    if not (monitor_dir / "gemma.parquet").exists():
+        console.print("D skipped: no text monitor outputs yet")
+        return
+    mon = {}
+    for n in ("gemma", "transfer"):
+        frame, _, sets = base[n]
+        mon[n] = ex.monitor_tests(
+            frame,
+            pd.read_parquet(monitor_dir / f"{n}.parquet"),
+            ex.run_scores(frame, sets),
+            n_boot,
+            n_perm,
+        )
+    mon.update(_stress_monitor(monitor_dir, n_boot, n_perm))
+    record = {
+        "text_monitor": mon,
+        "primary_family": ex.family(early["gemma"][0], side["heldout_pooled"], mon["gemma"]),
+    }
+    ex.save(record, out_dir, "text_monitor", "col lens-judge overlap extras")
+    for n, r in mon.items():
+        m, d = r["monitor"], r["lens_minus_monitor"]
+        found = f"pair {m['pair_found']}/{m['of']} split {m['split_found']}/{m['of']}"
+        diff = f"{d['diff']:+.3f} (lower {d['lower_95']:+.3f}, p={d['p']:.4f})"
+        console.print(f"D {n}: monitor {_auc(m)} {found}; lens minus monitor {diff}")
+    console.print("family", record["primary_family"])
+
+
+def _stress_monitor(monitor_dir: Path, n_boot: int, n_perm: int) -> dict:
+    """D on each stress condition: its collusion runs plus the Gemma Core controls."""
+    import pandas as pd
+
+    from colx.narcbench.runs import load_runs
+    from colx.overlap import extras as ex
+    from colx.overlap.compare import run_frame
+
+    core = pd.read_parquet(monitor_dir / "gemma.parquet")
+    out = {}
+    for c in ("aware", "para", "independent", "benign"):
+        frame = run_frame(load_runs(STRESS_DIR / c))
+        tokens = pd.read_parquet(Path("results/overlap") / c / "final_tokens.parquet")
+        sets = ex.entry_sets(tokens[(tokens.rendering == "raw") & (tokens.position == "P1")])
+        controls = core[core.run_id.str.endswith("__control")]
+        monitor = pd.concat(
+            [pd.read_parquet(monitor_dir / f"{c}.parquet"), controls], ignore_index=True
+        )
+        out[c] = ex.monitor_tests(frame, monitor, ex.run_scores(frame, sets), n_boot, n_perm)
+    return out
