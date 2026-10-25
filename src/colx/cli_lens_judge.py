@@ -13,6 +13,7 @@ from colx.app import launch
 from colx.cli_gemma import app as gemma_app
 from colx.cli_joint import app as joint_app
 from colx.cli_stego import app as stego_app
+from colx.cli_transfer import app as transfer_app
 from colx.cli_turns import app as turns_app
 from colx.extract.check import DEFAULT_RUNS, blocks_below, write_check
 from colx.extract.stored import write_stored
@@ -30,6 +31,7 @@ app.add_typer(joint_app, name="joint")
 app.add_typer(turns_app, name="turns")
 app.add_typer(gemma_app, name="gemma")
 app.add_typer(stego_app, name="stego")
+app.add_typer(transfer_app, name="transfer")
 console = Console()
 
 CORE_DIR = Path("third_party/narcbench/data/raw/qwen3_32b/core")
