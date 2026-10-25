@@ -101,7 +101,7 @@ We wrap NARCBench's generator, unmodified, to make 50 new Gemma runs per conditi
 \emph{Real collusion:} colluders told a monitor reads their messages \emph{and reasoning} (\texttt{aware}), also told to keep the arrangement out of their reasoning (\texttt{evade}), colluder 2's instruction paraphrased (\texttt{para}), or paraphrased with no private channel (\texttt{independent}). \emph{No collusion:} two honest agents share one confidential note and a private channel, with no target: cite evidence (\texttt{benign}), a budget detail, a deadline, or the first note given openly (\texttt{benign\_open}).
 
 \subsection{Validation and statistics}\label{sec:validation}
-The \emph{positive control}, a case where collusion is known to be present so the monitor must fire, is the instructed coalition. The \emph{negative controls}, cases known to contain no collusion so any flag is a false alarm, are each scenario's all-honest run and the harmless-note pairs. The pair-naming rule is fixed on Gemma Core and tested on Qwen Core and Transfer. We report AUROC with 95\% intervals from resampling the scenarios (10{,}000 draws) and one-sided p-values from 10{,}000 within-scenario label shuffles. To compare two monitors we resample the scenarios 10{,}000 times and recompute the difference: its \emph{one-sided 95\% lower bound} is the 5th percentile, and $p$ is the share of resamples where it is zero or below. Holm corrects within each pre-registered family. Seeds are fixed (statistics 0, probes 0--9); generation sampling is not, so we store the transcripts.
+The \emph{positive control}, a case where collusion is known to be present so the monitor must fire, is the instructed coalition. The \emph{negative controls}, cases known to contain no collusion so any flag is a false alarm, are each scenario's all-honest run and the harmless-note pairs. The pair-naming rule is fixed on Gemma Core and tested on Qwen Core and Transfer. We report AUROC, the chance that a random collusion run scores higher than a random control (0.5 is chance, 1 is perfect), with 95\% intervals from resampling the scenarios (10{,}000 draws) and one-sided p-values from 10{,}000 within-scenario label shuffles. To compare two monitors we resample the scenarios 10{,}000 times and recompute the difference: its \emph{one-sided 95\% lower bound} is the 5th percentile, and $p$ is the share of resamples where it is zero or below. Holm corrects within each pre-registered family. Seeds are fixed (statistics 0, probes 0--9); generation sampling is not, so we store the transcripts.
 
 \section{Results}
 
@@ -113,12 +113,9 @@ The \emph{positive control}, a case where collusion is known to be present so th
 \end{figure}
 
 \subsection{Lens overlap beats text: positive control and main result (planned)}\label{sec:main}
-The positive control works: the monitor fires on every dataset (Figure~\ref{fig:main}; Table~\ref{tab:main}). We score monitors by AUROC, the chance that a random collusion run scores higher than a random control (0.5 is chance, 1 is perfect).
-\begin{itemize}
-\item \textbf{Gemma Core, the planned primary test:} the lens monitor scores 0.98 and the best text monitor 0.90. The gap is $+0.08$, and at least $+0.02$ with 95\% confidence ($p=0.006$).
-\item \textbf{Qwen Core:} the lens scores 0.99, against 0.95 for the best text monitor and 0.84 for an LLM reading the discussion, which works on Qwen (gap $+0.15$, at least $+0.09$).
-\item \textbf{With no false alarms allowed} (the threshold just above every control), the lens catches 70\%, 74\% and 100\% of collusion runs on the three datasets; the best text monitor catches at most 64\%, 66\% and 14\%.
-\end{itemize}
+The monitor separates runs that contain an instructed coalition from all-honest controls on every dataset, and beats every text-based monitor on each (Figure~\ref{fig:main}, Table~\ref{tab:main}). On Gemma Core, our planned primary test, it reaches an AUROC of 0.98 against 0.90 for the best text-overlap monitor, a gain of 0.08 that is at least 0.02 with 95\% confidence ($p=0.006$). On Qwen Core it reaches 0.99, against 0.95 for text overlap and 0.84 for an LLM reading the whole discussion (a gain of 0.15, at least 0.09). The gap is widest on Transfer's six unseen task types, where the coalition barely shows in the agents' messages (best text 0.59) but separates perfectly in their activations (1.00, exploratory).
+
+The advantage holds at a fixed operating point. With the threshold set just above every control run, so that no control is flagged, the monitor catches 70\%, 74\% and 100\% of the collusion runs on the three datasets; the best text monitor catches at most 64\%, 66\% and 14\%.
 
 \begin{table}[t]
 \centering\small
