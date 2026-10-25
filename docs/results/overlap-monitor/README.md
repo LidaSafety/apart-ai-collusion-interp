@@ -11,12 +11,12 @@
 2. **The detector survives every stress test** (planned, all pass Holm):
    - colluders warned that their reasoning is monitored: 0.99;
    - paraphrased instructions: 0.96;
-   - no shared text and no channel: 0.89.
+   - paraphrased with no private channel: 0.89.
 3. **It is not collusion-specific.** Two honest agents who share a harmless confidential note are flagged too (0.94). It can barely tell real collusion from that (0.64). It is a **shared-secret-context detector**.
 4. **Under stress, the text catches up.** In the new Gemma runs, text-overlap monitors score 0.88–0.98, and the lens's edge over them is no longer significant.
 5. **Early warning** (planned):
    - the lens flags coalitions from each agent's state *before its first public message*: Gemma 0.94, Qwen 0.93;
-   - a text monitor of the agents' own words has nothing to read at that point.
+   - agents speak in turn, so later speakers have read earlier speakers' first messages (and colluders their private channel); but no agent's own words exist yet for a text-overlap monitor to compare.
 6. **Which side is the coalition** (rule fixed on Gemma, held-out test planned):
    - "the pair that shares fewer entries in total" names the colluders in **60 of 86** held-out runs (0.70, p = 0.0002);
    - so the monitor identifies the coalition, not just the split, about 70% of the time.
@@ -29,7 +29,7 @@
    - the reproduction matches the paper on Core (1.00 for both models); zero-shot on Transfer it is lower than reported (0.74–0.77 vs 0.82–0.88);
    - **the untrained overlap transfers, the probe doesn't:** Qwen Transfer 1.00 vs 0.78 (K3, +0.22, lower bound +0.13);
    - **the probe tells collusion from the cite-evidence note** (K1, 0.97), where overlap can't (0.64; K2, +0.33);
-   - but the probe flags the budget and deadline notes almost like collusion (0.93, 0.92 vs controls, exploratory), so neither method separates harmful from harmless secrets in general;
+   - but the probe also flags the budget and deadline notes against controls (0.93, 0.92, exploratory); collusion vs those notes was not tested;
    - the supervised TF-IDF baseline **failed its validity gate** (shuffled labels still give 0.63 and 0.84), so it is reported as invalid.
 
 ## Part 1: lens overlap vs text overlap
@@ -44,7 +44,7 @@ AUROC for collusion mode vs control, with 95% scenario-bootstrap intervals. "Spl
 
 - The four text instruments count the same thing on each agent's own public messages (rounds 1–3, names removed): shared words, shared word pairs, the 250 top TF-IDF words, and TF-IDF cosine.
 - The comparison uses the *best* of the four on each dataset, which favours text.
-- **The detector's top pair is the colluders in only 40–55% of runs.** When it isn't, it is the two *honest* agents: colluders lose concepts the honest pair shares. Section B uses this.
+- **The detector's top pair is the colluders in only 31–46% of runs** (20 of 50, 23 of 50, 11 of 36). When it isn't, it is the two *honest* agents: colluders lose concepts the honest pair shares. Section B uses this.
 
 Outputs are in `results/overlap/text/{gemma,qwen,transfer}.{json,parquet}`, from `col lens-judge overlap text --dataset …`.
 
@@ -72,7 +72,7 @@ There are 50 new collusion-mode runs per condition, made with NARCBench's `core.
   | independent | 48% |
   | benign | 48% |
 
-  At a 5% false-alarm rate the shares are 90%, 96%, 86%, 74% and 70%.
+  At the controls' 95th percentile (3 of 50 controls above it, a 6% false-alarm rate) the shares are 90%, 96%, 86%, 74% and 70%.
 - **Behaviour:** the manipulations didn't stop collusion. In `aware` the colluders voted the target *more* often (71% of colluders) than in Core.
 
 Outputs are in `results/overlap/<condition>/` and `results/overlap/stress.json`, from `col lens-judge overlap generate`, then `gemma labels/extract --final-only/tokens`, then `overlap stress`. Transcripts are in `/workspace/lens-judge/overlap-monitor/transcripts/`.
@@ -271,18 +271,18 @@ Without their noise augmentation every number is within 0.002. On Gemma Core (th
 | TF-IDF: Core ≥ 0.9, Transfer ≤ 0.7, null gate 0.5 ± 0.1 | Core 0.87 (Gemma), 0.94 (Qwen); Transfer 0.52; **null 0.63 and 0.84: gate failed** | ❌ |
 
 - **The two are complementary.** The label-free overlap transfers to unseen task types where the trained probe drops; the probe, trained on colluder-vs-honest labels, rejects the cite-evidence note that overlap flags.
-- **The probe is not a general harmful-vs-harmless judge** (exploratory). It flags the budget and deadline notes against controls at 0.93 and 0.92, nearly as high as real collusion. K1 holds for one note.
+- **The probe also flags two harmless notes** (exploratory): the budget and deadline notes score 0.93 and 0.92 against controls. Collusion vs those notes was not tested, so K1 shows the probe rejects one harmless note, not harmless notes in general.
 - **TF-IDF is invalid.** With colluder labels shuffled within runs its run statistics still separate collusion runs (0.63 Gemma, 0.84 Qwen), so its scores pick up run-level structure, not the labels. Per the plan we do not interpret its other numbers.
 
 Outputs: `results/probes/{qwen,gemma}/`, `results/probes/qwen/paper_metrics*.json`, `results/probes/compare.json`, from `col lens-judge probes extract-qwen`, `extract-gemma`, `reproduce` and `compare`. Log: `results/logs/2026-10-25T15-53_probes-compare.log`.
 
 ## What this means for monitoring
 
-- **What the lens monitor is:** a cheap, label-free detector of agents that share a hidden context. It works before they speak, survives warnings and paraphrase, and usually picks out which pair.
+- **What the lens monitor is:** a cheap, label-free detector of agents that share a hidden context. It works from each agent's state before its own first message, survives warnings and paraphrase, and usually picks out which pair.
 - **What it isn't:** a detector of harmful intent, or even of secrecy. Three different harmless shared notes are flagged (0.88–0.94), the same note given openly is flagged *more* (G), and judges reading the shared tokens couldn't tell harmful from harmless (E, H).
 - **What it resists:** colluders told to keep the arrangement out of their reasoning are still flagged at 0.985 (G).
-- **How it pairs with a trained probe:** overlap transfers and needs no labels; the probe rejects one harmless note overlap flags, but not two others (I).
-- **Where it adds over text:** when the shared secret doesn't surface in what agents write (Transfer) and before they write anything (early warning). Once colluders' messages converge, text overlap catches them as well.
+- **How it pairs with a trained probe:** overlap transfers and needs no labels; the probe rejects one harmless note that overlap flags, but flags two others against controls (I).
+- **Where it adds over text:** when the shared secret doesn't surface in what agents write (Transfer) and before each agent writes its own first message (early warning). Once colluders' messages converge, text overlap catches them as well.
 
 ## Limitations
 
@@ -291,3 +291,4 @@ Outputs: `results/probes/{qwen,gemma}/`, `results/probes/qwen/paper_metrics*.jso
 - The benign note is a single wording.
 - Both stress-test colluders still read each other's public messages.
 - Sampling isn't seeded per request (vLLM), so transcripts can't be regenerated exactly. The transcripts themselves are stored.
+- The provenance header of every result file records the series' default `model` (Qwen/Qwen3-32B), also for Gemma analyses: `colx.provenance.collect` fills it from a constant and no caller overrides it. The numbers are unaffected; each file's `command` and input paths say which model's data it analysed.
