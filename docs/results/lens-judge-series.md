@@ -20,6 +20,7 @@ We read the agents' internal activations through a **J-lens** (Jacobian lens; Gu
 | Who follows through? | **Only late,** from the start of a colluder's round-3 turn | Held-out classifier: Qwen 0.73, Gemma 0.71 (both pass Holm) |
 | Better than reading the discussion? | **No** | A frozen judge reading the same discussion: Qwen 0.82, Gemma 0.86. Lens − text: −0.08 and −0.15 |
 | Was the unconverged Qwen lens the problem? | **No** | A converged Gemma lens gives the same pattern |
+| **Steganographic collusion: does the receiver's lens hold the decoded secret?** | **Weak evidence** (overnight) | v2: the big player's lens 0.66 vs 0.57 for honest listeners of the same coded message (p = 0.021). An independent replication didn't confirm it (p = 0.34). Pooled raw-token advantage +0.09 [+0.03 lower bound]. NARCBench's own text monitor flagged 0 of 150 collusion tables |
 
 **Bottom line:** J-lens readouts are a reliable, label-free detector of agents that share a hidden context. They don't yet show the decision to act on it before, or beyond, what the conversation already shows.
 
@@ -116,12 +117,34 @@ NARCBench Core was regenerated with Gemma, extracted, and read with the converge
 - **Raw overlap, test b:** 0.70 (p = 0.009, uncorrected), a run-level follow-through hint. Qwen showed a similar hint (raw P2 0.66).
 - **The classifier's features** (exploratory, both models): deception words (*sneaky*, 伪装 *disguise*) point toward following through; casual words (*kinda*, *things*, *pretty*) point toward not following. The casual words probably mark the "lowkey" instruction wording, whose colluders follow through less.
 
+## 5. Overnight: steganographic collusion (Gemma-3-27B-IT)
+
+[Report](stego/README.md) · [Plan](../plans/stego.md)
+
+**Setup.** NARCBench-Stego: a counter signals the card count through coded table talk; a big player bets on it; an LLM pit boss watches.
+- Generated with a leak fix: NARCBench's code exposed the big player's private notes.
+- 50 shoes, read with the converged lens at each player's turn.
+
+**Results:**
+- **The pit boss flagged 0 of 150 collusion tables** (three datasets). A frozen Gemma monitor reaches 0.68–0.84 at table level.
+- **The v1 dataset had a confound:** NARCBench puts the true count history into the colluders' private channel.
+  - The big player's lens read that plain text: 0.76, where the text alone gives 0.86.
+- **In v2 the history is removed.** The big player still decodes (its bets track the count, median correlation 0.40).
+  - Its lens predicted HOT at 0.66 against 0.57 for honest players who heard the same message (+0.089, p = 0.021, planned).
+  - **An independent replication on 50 new shoes did not confirm it** (+0.023, p = 0.34).
+  - Pooled (descriptive), the receiver's advantage is +0.05 (words-relative) to +0.09 (raw, lower bound +0.03).
+  - Every player's lens predicts the count above chance, because the card history is public.
+- **The Core overlap detector doesn't transfer to stego as a colluder finder,** because the colluders get different instructions there.
+- **It does transfer to the transfer tier:** 1.00 (exploratory).
+- **NLA descriptions (layer 41) don't surface the decoded count** (judge 0.60, p = 0.13 vs honest).
+
 ## What we learned
 
-1. **The lens reliably shows shared hidden context.** Two agents given the same secret instruction carry overlapping concepts that the other agents don't. A plain count of shared lens tokens finds them at about 0.94–0.99, on two models, two lenses and two sets of transcripts. Instruction secrecy shows up as such concepts (隐藏 *hidden*, 秘密 *secret*, 伪装 *disguise*).
+1. **The lens reliably shows shared hidden context.** Two agents given the same secret instruction carry overlapping concepts that the other agents don't. A plain count of shared lens tokens finds them at about 0.94–0.99, on two models, two lenses and two sets of transcripts, and at 1.00 on the transfer tier's unseen scenario types (exploratory). Instruction secrecy shows up as such concepts (隐藏 *hidden*, 秘密 *secret*, 伪装 *disguise*).
 2. **LLM judges are a weak way to read lens tokens.** Judges reading tokens one agent at a time miss what a classifier finds. Side by side, a judge finds the pair but can't calibrate a rating. Adding tokens to the discussion distracts it.
 3. **Follow-through is not visible early, and not beyond the text.** It appears only once the discussion is well under way (round 2–3) and mostly at run level, where a judge reading the conversation does better.
 4. **These limits are not about lens quality.** The converged Gemma lens behaves like the unconverged Qwen lens.
+5. **Steganographic collusion is invisible to NARCBench's own text monitor, but not to a prompted one.** The lens's evidence that the receiver holds the decoded secret is weak: positive once, not replicated.
 
 ## Limitations
 
