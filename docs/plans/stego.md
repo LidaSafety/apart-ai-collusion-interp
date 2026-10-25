@@ -140,3 +140,19 @@ Jorge: "there is also other types of lens like j++ lens or R lens, pls try them 
 **Ordering note (11:50 PM ET):** block F ranks below "more stego shoes".
 - **Why:** J++'s claimed advantage is at earlier layers than the band read here. The overlap detector is near its ceiling with any lens. Lens convergence already made no difference on Gemma.
 - **When it runs:** only if S3 is clearly positive or clearly null (so more shoes wouldn't help) and there's time before about 4:30 AM ET. Otherwise it is cut and recorded as not run.
+
+## Amendment 4 (2026-10-25, 12:35 AM ET, after the v1 results, before any v2 data): stego v2 without the plain-text count history
+
+**What v1 showed.** S3 passed (big player's lens 0.76 vs honest 0.56, p = 0.0004), but a post hoc check found that NARCBench writes the true count range of every previous hand into the colluders' private channel in plain text (`[Hand h: HOT (count +12)]`), which the big player's prompt contains.
+- The previous hand's numeric count alone predicts the current HOT at **0.863**, more than the lens (0.756).
+- The big player's lens adds +0.038 beyond it (lower bound +0.019); the honest players' lens adds +0.006.
+- So v1's S3 is mostly a reading of plain text in the prompt. That part is exploratory and is reported as such.
+
+**v2, the decisive test:**
+- **Data:** the same 50 shoes (same cards and counts), generated with the `[Hand h: RANGE (count x)]` lines **removed from the big player's prompts only**. The counter still receives the count each hand, as the game intends.
+- **How:** the leak-fix wrapper strips those lines before the model sees them, and the same function rewrites the saved `agent_prompts.json`, so extraction re-renders exactly what the model saw.
+- **Gate S on v2:** as before. If the big player's bets no longer track the count (median correlation < 0.3), that is itself the finding (Gemma was not really decoding in v1), and S3 on v2 is reported as not meaningful.
+- **Primary test on v2:** S3 (big player − honest players who heard the counter, words-relative), one-sided α = 0.05. S1 and S2 are reported as secondary on v2, since S1's words-relative design failed in v1 for a structural reason: the two colluders get different instructions in stego.
+- **Check:** the previous-hand count is no longer in the big player's prompt (asserted on all v2 big-player prompts).
+
+**Ordering:** v2 generation and chain → block E (NLA) on the v2 units → report. **Block F is cut** for time (recorded as not run).
