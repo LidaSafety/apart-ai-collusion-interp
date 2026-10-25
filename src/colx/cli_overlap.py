@@ -228,6 +228,9 @@ def extras(
             n_boot,
             n_perm,
         )
+    frame, _, sets = base["qwen"]
+    qwen = _qwen_discussion_judge(frame)
+    mon["qwen"] = ex.monitor_tests(frame, qwen, ex.run_scores(frame, sets), n_boot, n_perm)
     mon.update(_stress_monitor(monitor_dir, n_boot, n_perm))
     record = {
         "text_monitor": mon,
@@ -262,3 +265,26 @@ def _stress_monitor(monitor_dir: Path, n_boot: int, n_perm: int) -> dict:
         )
         out[c] = ex.monitor_tests(frame, monitor, ex.run_scores(frame, sets), n_boot, n_perm)
     return out
+
+
+def _qwen_discussion_judge(frame):
+    """Qwen Core's joint-judge `discussion` arm as a monitor table, pairs in sorted-name order.
+
+    The joint judge numbered agents in its own shuffled order (`order`); the pair is mapped
+    to names and back to numbers in the frame's sorted order, as the other monitors use.
+    """
+    import pandas as pd
+
+    s = pd.read_parquet("results/joint-judge/scores.parquet")
+    s = s[s.arm == "discussion"]
+    sorted_order = dict(zip(frame.run_id, frame.order, strict=True))
+    pairs = []
+    for r in s.itertuples():
+        if r.pair is None:
+            pairs.append(None)
+            continue
+        names = [list(r.order)[int(i) - 1] for i in r.pair]
+        pairs.append(sorted(sorted_order[r.run_id].index(n) + 1 for n in names))
+    return pd.DataFrame(
+        {"run_id": s.run_id.to_numpy(), "rating": s.rating.to_numpy(), "pair": pairs}
+    )
