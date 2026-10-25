@@ -26,14 +26,16 @@ PORT = 8020
 ENGINE_ENV = {"VLLM_USE_V1": "0"}
 
 
-def server_command(vllm_env: Path, model_dir: Path, eager: bool, port: int = PORT) -> list[str]:
+def server_command(
+    vllm_env: Path, model_dir: Path, eager: bool, port: int = PORT, served_name: str = MODEL_ID
+) -> list[str]:
     """The vLLM serve command: the local snapshot, served under the Hub model id."""
     return [
         str(vllm_env / "bin" / "vllm"),
         "serve",
         str(model_dir),
         "--served-model-name",
-        MODEL_ID,
+        served_name,
         "--port",
         str(port),
         "--seed",
