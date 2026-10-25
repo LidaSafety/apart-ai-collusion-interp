@@ -6,7 +6,8 @@
 
 > Drafting notes for the team (remove before submission):
 > - Every number below comes from a result file named in `docs/results/`.
-> - References were checked by web search on Oct 25. Two author lists are still marked [verify].
+> - References were checked by web search on Oct 25. The J-lens paper's author list is still marked [verify].
+> - Before submission: add the team as authors, move this text into the official template, and remove these notes.
 
 ## Abstract
 
@@ -116,7 +117,7 @@ Read just before each agent writes its first public message, the score already s
 
 At that point a monitor of the agents' own words has nothing to read. Colluders have, however, already read their private channel.
 
-![Figure 3](figures/fig3_early_warning.png)
+![Figure 2](figures/fig3_early_warning.png)
 *Figure 2. AUROC by read point, raw lens tokens. Bands are 95% intervals.*
 
 ### 4.3 Which pair? (rule exploratory, held-out test planned)
@@ -129,7 +130,7 @@ To choose a side we fixed one rule on Gemma before looking at other data: *the c
 
 Single layers reach at most 0.94 (Gemma layer 45 of 62; Qwen layer 50 of 64). The signal peaks at roughly 75–85% depth and fades in the last layers. All ten layers together score highest.
 
-![Figure 4](figures/fig4_layers.png)
+![Figure 3](figures/fig4_layers.png)
 *Figure 3. AUROC from one layer's entries alone.*
 
 ### 4.5 Stress tests (planned)
@@ -144,7 +145,7 @@ Fifty new Gemma collusion-mode runs per condition, each compared with the same 5
 | Paraphrased, and no private channel | **0.894** | 0.920 | 45/50 | 20 |
 | Harmless shared confidential note, no target | **0.939** | 0.884 | 48/50 | — |
 
-![Figure 2](figures/fig2_stress.png)
+![Figure 4](figures/fig2_stress.png)
 *Figure 4. Stress conditions: lens vs the best text-overlap monitor, each condition's 50 runs against the same 50 controls.*
 
 - **All three planned tests pass** (Holm, p < 0.001).
@@ -182,7 +183,10 @@ A frozen judge reads each run's public discussion and rates 0–9 whether two ag
 
 ### 4.8 What did not work
 
-- **LLM judges reading lens tokens.** One agent at a time they are near chance. Reading all four side by side, a judge names the instructed pair in 35 of 50 runs, but its rating carries no signal. Adding lens tokens to the discussion makes it worse.
+- **LLM judges reading lens tokens** (Qwen3-32B as judge).
+  - One agent at a time, they are near chance. This is our pre-sprint result.
+  - Reading all four side by side, during the sprint, the judge names the instructed pair in 35 of 50 runs, but its rating carries no signal.
+  - Adding lens tokens to the discussion makes it worse.
 - **Follow-through.** Lens features predict which colluders will vote the target only late in the discussion (0.71–0.73), and a judge reading the conversation does better (0.82–0.86).
 - **Natural-language autoencoder descriptions** of the stego receiver's activations did not surface the decoded count (0.60, p = 0.13).
 
