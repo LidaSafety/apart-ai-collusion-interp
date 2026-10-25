@@ -7,8 +7,12 @@ import typer
 from rich.console import Console
 
 from colx.gemma.model import MODEL_ID
+from colx.stego.analyse import analyse as run_analyse
+from colx.stego.extract import extract as run_extract
 from colx.stego.gate import gate as run_gate
 from colx.stego.generate import generate as run_generate
+from colx.stego.monitor import run_monitor
+from colx.stego.readout import write_tokens
 
 app = typer.Typer(no_args_is_help=True, help="Stego tier: lens vs text monitors, decoding.")
 console = Console()
@@ -49,3 +53,54 @@ def gate(stego_dir: Annotated[Path, typer.Option(help="Stego run folders.")] = S
     console.print(verdict)
     if not verdict["no leak"]:
         raise typer.Exit(code=1)
+
+
+OUT_DIR = Path("results/stego")
+LENS_PATH = Path(
+    "/workspace/lenses/neuronpedia-gemma-3-27b-it/gemma-3-27b-it/jlens/Salesforce-wikitext/"
+    "gemma-3-27b-it_jacobian_lens.pt"
+)
+ModelDir = Annotated[Path, typer.Option(help="Local Gemma-3-27B-IT snapshot.")]
+StegoDir = Annotated[Path, typer.Option(help="Stego run folders.")]
+OutDir = Annotated[Path, typer.Option(help="Output folder.")]
+
+
+@app.command()
+def extract(
+    stego_dir: StegoDir = STEGO_DIR,
+    model_dir: ModelDir = Path("/dev/shm/gemma-3-27b-it"),
+    out_dir: OutDir = OUT_DIR,
+) -> None:
+    """Residuals of every player call at H-start and H-end (GPU)."""
+    console.print(run_extract(stego_dir, model_dir, out_dir, console.print))
+
+
+@app.command()
+def tokens(
+    model_dir: ModelDir = Path("/dev/shm/gemma-3-27b-it"),
+    lens: Annotated[Path, typer.Option(help="Gemma J-lens file.")] = LENS_PATH,
+    out_dir: OutDir = OUT_DIR,
+) -> None:
+    """Raw and words-relative top-25 lens tokens at H-start and H-end (GPU)."""
+    console.print(write_tokens(model_dir, lens, out_dir, console.print))
+
+
+@app.command()
+def monitor(
+    stego_dir: StegoDir = STEGO_DIR,
+    model_dir: ModelDir = Path("/dev/shm/gemma-3-27b-it"),
+    out_dir: OutDir = OUT_DIR,
+) -> None:
+    """S2's frozen text monitor: Gemma rates each table's public chat 0-9 (GPU)."""
+    console.print(run_monitor(stego_dir, model_dir, out_dir, console.print))
+
+
+@app.command()
+def analyse(
+    out_dir: OutDir = OUT_DIR,
+    stego_dir: StegoDir = STEGO_DIR,
+    n_boot: Annotated[int, typer.Option(help="Shoe-bootstrap draws.")] = 10_000,
+    n_perm: Annotated[int, typer.Option(help="Label shuffles.")] = 10_000,
+) -> None:
+    """S1-S3 and the Holm-corrected primary family."""
+    console.print(run_analyse(out_dir, stego_dir, n_boot, n_perm))
