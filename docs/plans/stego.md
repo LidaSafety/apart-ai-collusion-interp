@@ -110,3 +110,29 @@ Jorge (asleep): "if there is anything interesting you find that looks promising 
 | E3 | Descriptive: the most frequent words in big-player vs honest descriptions on HOT hands | — | none |
 
 **Labels:** E1 is planned here, before any NLA output. E2 and E3 are secondary.
+
+## Amendment 3 (2026-10-24, 11:45 PM ET, before any block-F data): block F compares the J-lens with the J++ lens
+
+Jorge: "there is also other types of lens like j++ lens or R lens, pls try them and compare too".
+
+**What exists:**
+- **J++ lens** (Ayonrinde & Lindsey 2026, a "more faithful" drop-in for the J-lens): Neuronpedia has it only for other models, not for Qwen3-32B or Gemma-3-27B.
+- **"R lens":** no such lens in Neuronpedia's repository or the J-lens library. It is not attempted; the repository's third family, activation-oracle adapters, is a different tool and is left for later.
+
+**Model:** `Qwen/Qwen3-4B`. It has both a J-lens and a J++ lens from Neuronpedia (J++ fitted with the paper's recipe, recall@10 53.8%), and the same architecture as Qwen3-32B, so the whole pipeline applies unchanged.
+
+**Steps:**
+1. NARCBench Core generated with Qwen3-4B (unchanged `core.py`; vLLM V0).
+2. **Gate 1** with the same minimums as on Gemma. If it fails (a 4B model may not play the game), report and stop block F.
+3. Extraction as for Gemma Core (P1, P2, discussion T-start/T-end), at 10 layers spanning the same relative depth: 13, 15, 17, 19, 21, 24, 26, 28, 30, 32 of 0–35.
+4. **Readouts of the same activations with both lenses**, the same rules (raw, words-relative top 25).
+
+**Tests:** each with both lenses, plus the paired difference J++ − J (shoe/scenario bootstrap, two-sided).
+
+| # | Test |
+|---|---|
+| F1 | Overlap detector, collusion mode vs control, P1, words-relative and raw |
+| F2 | Held-out instruction classifier at P1, colluder vs honest in collusion-mode runs |
+| F3 | Held-out follow-through classifier at R3 T-start, colluders |
+
+**Labels:** all exploratory (a lens comparison, no primary claim). Block F runs after block E. Block B (Qwen3-32B stego) stays last and runs only if time allows.
