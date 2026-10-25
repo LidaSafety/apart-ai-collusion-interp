@@ -236,3 +236,4 @@ results/gemma/
 # Stego and transfer outputs
 results/stego/
 results/transfer/
+results/private/
