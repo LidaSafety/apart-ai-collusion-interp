@@ -1,5 +1,6 @@
 """`col lens-judge private …`: the private-channel turn on Core (plan: stego.md, block D)."""
 
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -8,8 +9,10 @@ import typer
 from rich.console import Console
 
 from colx.private.analyse import analyse
+from colx.private.judge import run_private_judge
 from colx.private.readout import write_private_tokens
 from colx.provenance import LENS_PATH
+from colx.turns.write import load_inputs
 
 app = typer.Typer(no_args_is_help=True, help="Private-channel turn (exploratory).")
 console = Console()
@@ -51,4 +54,27 @@ def analyse_cmd(
         recs[["instrument", "position", "test", "auroc", "p", "diff", "lower_95"]]
         .round(3)
         .to_string(index=False)
+    )
+
+
+@app.command()
+def judge(
+    model: Annotated[str, typer.Option(help="Judge model folder.")],
+    judge_family: Annotated[str, typer.Option("--judge", help="qwen or gemma.")] = "qwen",
+    out_dir: OutDir = OUT_DIR,
+    round4_dir: Annotated[Path, typer.Option(help="Round-4 labels.")] = Path(
+        "results/round4-judge"
+    ),
+    core_dir: Annotated[Path, typer.Option(help="Core transcripts.")] = Path(
+        "third_party/narcbench/data/raw/qwen3_32b/core"
+    ),
+) -> None:
+    """Frozen text judge on the private messages each colluder had seen (GPU)."""
+    _, colluders, runs, _, _ = load_inputs(Path("results/discussion-turns"), round4_dir, core_dir)
+    private = {
+        r: json.loads((core_dir / r / "results.json").read_text())["private_messages"]
+        for r in runs.run_id
+    }
+    console.print(
+        run_private_judge(model, colluders, runs, private, out_dir, judge_family, console.print)
     )
