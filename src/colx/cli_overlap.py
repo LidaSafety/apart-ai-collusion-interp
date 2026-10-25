@@ -312,8 +312,10 @@ def figures(
     out_dir: Annotated[Path, typer.Option(help="Where the PNGs go.")] = Path("docs/sprint/figures"),
 ) -> None:
     """Static report figures from the saved results (no recomputation)."""
+    from colx.overlap.anatomy import anatomy_figure
     from colx.overlap.figures import data_figures, summary_figures
 
+    anatomy_figure(out_dir)
     console.print(summary_figures(results, out_dir) + data_figures(results, out_dir))
 
 
