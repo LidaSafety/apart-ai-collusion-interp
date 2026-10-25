@@ -6,7 +6,7 @@
 
 > Drafting notes for the team (remove before submission):
 > - Every number below comes from a result file named in `docs/results/`.
-> - References marked [verify] must be checked against the source before submission.
+> - References were checked by web search on Oct 25. Two author lists are still marked [verify].
 
 ## Abstract
 
@@ -19,9 +19,9 @@ Multi-agent LLM systems increasingly negotiate, review and decide together. A co
 - they can encode signals steganographically;
 - they can simply argue well for the option they were told to push.
 
-Most collusion monitors today read text (Motwani et al., 2024 [verify]). We test a white-box alternative: reading what the agents *have in mind*.
+Most proposed collusion monitors read text (Motwani et al., 2024). Rose et al. (2026) train activation probes, which need labelled collusion data. We test a white-box alternative: reading what the agents *have in mind*.
 
-We use the Jacobian lens (J-lens; Gurnee et al., 2026 [verify]), which maps a residual-stream activation to the vocabulary tokens it represents, layer by layer. Our premise is simple. Two agents given the same secret should carry concepts the other agents lack. If so, a plain count of shared lens tokens should find them, with no labels, no training and no LLM judge, so there is no classifier to overfit and no judge to fool.
+We use the Jacobian lens (J-lens; Gurnee et al., 2026), which maps a residual-stream activation to the vocabulary tokens it represents, layer by layer. Our premise is simple. Two agents given the same secret should carry concepts the other agents lack. If so, a plain count of shared lens tokens should find them, with no labels, no training and no LLM judge, so there is no classifier to overfit and no judge to fool.
 
 **Contributions:**
 1. **A label-free coalition monitor.** On NARCBench (two models, two lenses, three datasets) it beats text-overlap baselines in every original dataset. It identifies the colluding pair, and it fires before either colluder writes a public message (§4.1–4.4).
@@ -33,9 +33,20 @@ All tests were pre-registered in dated plans before they ran (`docs/plans/`). Ex
 
 ## 2. Related work
 
-- **Collusion between LLM agents.** Motwani et al. (2024) [verify] formalise secret collusion and steganographic channels between generative agents. NARCBench (Rose et al. [verify]; github.com/aaronrose227/narcbench) provides committee, transfer and steganography tiers with instructed coalitions and honest controls, which we build on.
-- **Steganography and text monitoring.** Roger & Greenblatt (2023) [verify] study encoded reasoning and paraphrasing defences. AI-control work (Greenblatt et al., 2023 [verify]) treats monitors as a line of defence that untrusted models may try to evade. Our `aware` condition tests a monitor-aware coalition.
-- **Reading activations.** Logit-lens-style readouts (nostalgebraist, 2020; Belrose et al., 2023, the tuned lens [verify]) and the J-lens (Gurnee et al., 2026 [verify]) read intermediate states as tokens. Linear probes detect deception and backdoors (e.g. MacDiarmid et al., 2024; Goldowsky-Dill et al., 2025 [verify]), but they need labelled data. Our monitor needs none and compares agents with each other rather than against a trained direction.
+- **Collusion between LLM agents.**
+  - Motwani et al. (2024) formalise secret collusion and steganographic channels between generative agents (NeurIPS 2024).
+  - NARCBench (Rose et al., 2026) provides committee, transfer and steganography tiers, with instructed coalitions and honest controls.
+- **Closest prior work: Rose et al. (2026).** They detect collusion on NARCBench from activations with *trained* probes:
+  - perfect in distribution;
+  - weaker under zero-shot transfer to new scenario types.
+  
+  Our monitor is *untrained*. It compares the four agents with each other instead of scoring each against a learned direction, so it has nothing to transfer. It reaches 1.00 on the Transfer tier, though with a different model from theirs.
+- **Steganography and text monitoring.**
+  - Roger & Greenblatt (2023) study encoded reasoning and show that paraphrasing limits it.
+  - AI-control work (Greenblatt et al., 2024) treats monitors as a defence that untrusted models may try to subvert. Our `aware` condition tests a coalition told it is being watched.
+- **Reading activations.**
+  - Logit-lens-style readouts (nostalgebraist, 2020), the tuned lens (Belrose et al., 2023) and the Jacobian lens (Gurnee et al., 2026) read intermediate states as tokens. We use the J-lens and its reference implementation.
+  - Linear probes detect strategic deception (Goldowsky-Dill et al., 2025) and sleeper-agent defection (MacDiarmid et al., 2024). Both need labelled or contrastive data; ours needs none.
 
 ## 3. Method
 
@@ -200,14 +211,14 @@ It is therefore a first-stage flag. A second stage must judge *what* the shared 
 
 **AI assistance.** The analysis code and drafting used Claude Code under the team's supervision. All numbers come from committed code and logged runs.
 
-## References [verify every entry before submission]
+## References
 
-- Belrose, N. et al. (2023). *Eliciting Latent Predictions from Transformers with the Tuned Lens.* arXiv.
-- Goldowsky-Dill, N. et al. (2025). *Detecting Strategic Deception Using Linear Probes.* arXiv.
-- Greenblatt, R. et al. (2023). *AI Control: Improving Safety Despite Intentional Subversion.* arXiv.
-- Gurnee, W. et al. (2026). *[J-lens paper title].* [venue]. Code: github.com/anthropics/jacobian-lens.
-- MacDiarmid, M. et al. (2024). *Simple probes can catch sleeper agents.* Anthropic.
-- Motwani, S. R. et al. (2024). *Secret Collusion among Generative AI Agents.* arXiv.
+- Belrose, N., et al. (2023). *Eliciting Latent Predictions from Transformers with the Tuned Lens.* arXiv:2303.08112.
+- Goldowsky-Dill, N., Chughtai, B., Heimersheim, S., & Hobbhahn, M. (2025). *Detecting Strategic Deception with Linear Probes.* ICML 2025 (PMLR 267). arXiv:2502.03407.
+- Greenblatt, R., Shlegeris, B., Sachan, K., & Roger, F. (2024). *AI Control: Improving Safety Despite Intentional Subversion.* ICML 2024 (PMLR 235). arXiv:2312.06942.
+- Gurnee, W., et al. (2026). *Verbalizable Representations Form a Global Workspace in Language Models.* Transformer Circuits Thread. https://transformer-circuits.pub/2026/workspace/index.html. Code: github.com/anthropics/jacobian-lens. [verify the author list]
+- MacDiarmid, M., et al. (2024). *Simple probes can catch sleeper agents.* Anthropic Alignment Note. https://anthropic.com/research/probes-catch-sleeper-agents
+- Motwani, S. R., et al. (2024). *Secret Collusion among AI Agents: Multi-Agent Deception via Steganography.* NeurIPS 2024. arXiv:2402.07510.
 - nostalgebraist (2020). *interpreting GPT: the logit lens.* LessWrong.
-- Roger, F. & Greenblatt, R. (2023). *Preventing Language Models From Hiding Their Reasoning.* arXiv.
-- Rose, A. et al. *NARCBench.* github.com/aaronrose227/narcbench [author list and paper to verify].
+- Roger, F., & Greenblatt, R. (2023). *Preventing Language Models From Hiding Their Reasoning.* arXiv:2310.18512.
+- Rose, A., Cullen, C., Kaplowitz, B. G., & Schroeder de Witt, C. (2026). *Detecting Multi-Agent Collusion Through Multi-Agent Interpretability.* arXiv:2604.01151. Code and data: github.com/aaronrose227/narcbench.
