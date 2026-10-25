@@ -105,6 +105,9 @@ On the original data the instructed coalition is the positive control. The monit
 
 On Transfer the coalition is nearly invisible in the agents' messages and plain in their activations.
 
+![Figure 1](figures/fig1_lens_vs_text.png)
+*Figure 1. AUROC for telling collusion runs from controls: lens overlap vs the best of four text-overlap monitors, with 95% scenario-bootstrap intervals.*
+
 ### 4.2 Early warning (planned)
 
 Read just before each agent writes its first public message, the score already separates the modes:
@@ -112,6 +115,9 @@ Read just before each agent writes its first public message, the score already s
 - **Qwen: 0.928** [0.875, 0.971].
 
 At that point a monitor of the agents' own words has nothing to read. Colluders have, however, already read their private channel.
+
+![Figure 3](figures/fig3_early_warning.png)
+*Figure 2. AUROC by read point, raw lens tokens. Bands are 95% intervals.*
 
 ### 4.3 Which pair? (rule exploratory, held-out test planned)
 
@@ -122,6 +128,9 @@ To choose a side we fixed one rule on Gemma before looking at other data: *the c
 ### 4.4 Where in the network (descriptive)
 
 Single layers reach at most 0.94 (Gemma layer 45 of 62; Qwen layer 50 of 64). The signal peaks at roughly 75–85% depth and fades in the last layers. All ten layers together score highest.
+
+![Figure 4](figures/fig4_layers.png)
+*Figure 3. AUROC from one layer's entries alone.*
 
 ### 4.5 Stress tests (planned)
 
@@ -134,6 +143,9 @@ Fifty new Gemma collusion-mode runs per condition, each compared with the same 5
 | Colluder 2's instruction paraphrased | **0.960** | 0.927 | 47/50 | 23 |
 | Paraphrased, and no private channel | **0.894** | 0.920 | 45/50 | 20 |
 | Harmless shared confidential note, no target | **0.939** | 0.884 | 48/50 | — |
+
+![Figure 2](figures/fig2_stress.png)
+*Figure 4. Stress conditions: lens vs the best text-overlap monitor, each condition's 50 runs against the same 50 controls.*
 
 - **All three planned tests pass** (Holm, p < 0.001).
 - Warned colluders are *not* harder to see.
