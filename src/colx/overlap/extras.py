@@ -141,3 +141,65 @@ def family(early: dict, side: dict, monitor: dict) -> dict:
         "D_gemma_lens_minus_monitor": d["p"],
     }
     return {k: {"p": p[k], "rejected": r} for k, r in holm(p).items()}
+
+
+def content_tests(frames: dict, stage2: dict, lens: dict, n_boot: int, n_perm: int) -> dict:
+    """E: stage 2 on Core collusion vs benign (primary), and each set vs its controls.
+
+    `frames[s]`, `stage2[s]` (run_id, rating) and `lens[s]` (array in frame order) per set;
+    "gemma" holds Core collusion and control runs, the conditions their collusion runs.
+    """
+    rate = {
+        s: stage2[s].set_index("run_id").rating.loc[frames[s].run_id].to_numpy() for s in frames
+    }
+    core = frames["gemma"]["mode"].eq("collusion").to_numpy()
+
+    def contrast(pos: str, neg: str, pos_mask=None, neg_mask=None) -> dict:
+        pm = np.ones(len(frames[pos]), bool) if pos_mask is None else pos_mask
+        nm = np.ones(len(frames[neg]), bool) if neg_mask is None else neg_mask
+        s2 = np.concatenate([rate[pos][pm], rate[neg][nm]])
+        ln = np.concatenate([lens[pos][pm], lens[neg][nm]])
+        y = np.concatenate([np.ones(pm.sum(), bool), np.zeros(nm.sum(), bool)])
+        scen = np.concatenate(
+            [frames[pos].scenario_id.to_numpy()[pm], frames[neg].scenario_id.to_numpy()[nm]]
+        )
+        return {
+            "stage2": auroc_test(s2, y, scen, scen, n_boot, n_perm),
+            "lens": auroc_test(ln, y, scen, scen, n_boot, n_perm),
+            "stage2_minus_lens": versus(s2, ln, y, scen, n_boot),
+        }
+
+    out = {"primary_core_collusion_vs_benign": contrast("gemma", "benign", core, None)}
+    for c in ("aware", "para", "independent", "benign"):
+        out[f"{c}_vs_core_controls"] = contrast(c, "gemma", None, ~core)
+    out["core_collusion_vs_core_controls"] = contrast("gemma", "gemma", core, ~core)
+    if "transfer" in frames:
+        t = frames["transfer"]["mode"].eq("collusion").to_numpy()
+        out["transfer_collusion_vs_controls"] = contrast("transfer", "transfer", t, ~t)
+    return out
+
+
+def flag_and_name(
+    frame: pd.DataFrame, sets: dict, lens: np.ndarray, threshold: float, monitor_pairs: dict
+) -> dict:
+    """F: collusion runs flagged (lens > threshold) and correctly named, by two pair rules."""
+    n = flagged = side_ok = judge_ok = 0
+    for i, (r, order, coll) in enumerate(
+        zip(frame.run_id, frame.order, frame.colluders, strict=True)
+    ):
+        if coll is None:
+            continue
+        n += 1
+        if lens[i] <= threshold:
+            continue
+        flagged += 1
+        side_ok += set(coalition_side([sets[(r, x)] for x in order])) == set(coll)
+        pair = monitor_pairs.get(r)
+        judge_ok += pair is not None and set(pair) == set(coll)
+    return {
+        "collusion_runs": n,
+        "flagged": flagged,
+        "flagged_and_named_by_side_rule": side_ok,
+        "flagged_and_named_by_text_judge": judge_ok,
+        "threshold": float(threshold),
+    }
