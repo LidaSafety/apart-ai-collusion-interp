@@ -72,9 +72,14 @@ def forward_points(
 
 
 def extract(
-    core_dir: Path, model_dir: Path, out_dir: Path, log=print, backend: str = "gemma"
+    core_dir: Path,
+    model_dir: Path,
+    out_dir: Path,
+    log=print,
+    backend: str = "gemma",
+    final_only: bool = False,
 ) -> dict:
-    """Forward every call of every run; save the index table and residuals."""
+    """Forward every call of every run (or only the final calls); save index and residuals."""
     from colx.backends import BACKENDS
 
     be = BACKENDS[backend]
@@ -86,7 +91,7 @@ def extract(
         results = pd.read_json(run_dir / "results.json", typ="series")
         last = results["public_messages"][-1]
         for call in load_calls(run_dir):
-            if call["phase"] == "private":
+            if call["phase"] == "private" or (final_only and call["phase"] != "final"):
                 continue
             last_msg = last if call["phase"] == "final" else None
             ids, points = read_points(tokenizer, call, last_msg, render_fn=be.render)

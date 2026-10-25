@@ -63,9 +63,10 @@ def extract(
     core_dir: CoreDir = CORE_DIR,
     out_dir: Annotated[Path, typer.Option(help="Output folder.")] = OUT_DIR,
     backend: Annotated[str, typer.Option(help="gemma, qwen or qwen4b.")] = "gemma",
+    final_only: Annotated[bool, typer.Option(help="Only the final (vote) calls.")] = False,
 ) -> None:
     """Residuals of every call at its read points, through Gemma (GPU)."""
-    console.print(run_extract(core_dir, model_dir, out_dir, console.print, backend))
+    console.print(run_extract(core_dir, model_dir, out_dir, console.print, backend, final_only))
 
 
 @app.command()

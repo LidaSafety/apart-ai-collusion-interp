@@ -86,6 +86,8 @@ def write_readouts(
     out = {}
     for phase, reads in READS.items():
         rows = calls[calls.phase == phase]
+        if rows.empty:  # a final-calls-only extraction (overlap-monitor plan)
+            continue
         groups = torch.as_tensor(
             rows["round"].to_numpy() if phase == "discussion" else [0] * len(rows)
         )
@@ -109,6 +111,8 @@ def write_readouts(
         layers=be.layers,
     )
     for phase, name in (("final", "final_tokens"), ("discussion", "turns_tokens")):
+        if phase not in out:
+            continue
         out[phase].to_parquet(out_dir / f"{name}.parquet", index=False)
         provenance.write_meta(out_dir / f"{name}.parquet", meta)
     return {name: len(t) for name, t in out.items()}
