@@ -1,7 +1,7 @@
 # Reading collusion from activations: a label-free lens monitor for hidden coalitions
 
 > [!IMPORTANT]
-> **Disclosure: what was done before and during the sprint.** This project builds on earlier work of the same author (Jorge Roldan, SPAR Fall 2026 project on multi-agent collusion), as the sprint rules allow. Everything up to the git tag **`pre-sprint`** (commit `d2eb0af`, Oct 22, 2026, 10:16 PM ET) is **pre-existing**; everything after it was done **during the sprint (Oct 24–25, 2026)**. Commit hashes and dates are identical to the project's private SPAR repository. The work was AI-assisted (Claude Code); the author is responsible for every claim.
+> **Disclosure: what was done before and during the sprint.** This project builds on the team's earlier work in a SPAR Fall 2026 project on multi-agent collusion, as the sprint rules allow. Everything up to the git tag **`pre-sprint`** (commit `d2eb0af`, Oct 22, 2026, 10:16 PM ET) is **pre-existing**; everything after it was done **during the sprint (Oct 24–25, 2026)**. Commit hashes and dates are identical to the project's private SPAR repository. The work was AI-assisted (Claude Code); the team is responsible for every claim.
 
 ### Pre-existing (before Oct 23, 2026)
 
@@ -31,7 +31,7 @@ git diff --stat pre-sprint HEAD         # everything added or changed during the
 
 Submission to the **Apart Research AI Collusion Research Sprint** (Oct 23–25, 2026), Track 2 (Detection and Audit), with a Track 3 stress test (colluders who know they are watched).
 
-Jorge Roldan · Every number traces to a result file and a log.
+Every number traces to a result file and a log.
 
 ## The question
 
