@@ -21,7 +21,10 @@
    - "the pair that shares fewer entries in total" names the colluders in **60 of 86** held-out runs (0.70, p = 0.0002);
    - so the monitor identifies the coalition, not just the split, about 70% of the time.
 7. **Layers:** single layers reach 0.94 at best (Gemma L45, Qwen L50). Mid-to-late layers carry the most signal, and all ten together are best.
-8. **LLM text monitor:** *see section D (filled when the run finishes)*.
+8. **An LLM text monitor is fragile** (planned):
+   - Qwen3-32B reading Qwen transcripts reaches 0.84, and the lens beats it (+0.15).
+   - Gemma-3-27B with the same prompt on Gemma transcripts is **inverted (0.17)**: it reads honest agents converging on the fair option as coordination. It is inverted on every stress set too (0.12–0.14) and at chance on Transfer (0.53).
+   - Its *named pair* is often right (32 of 50 on Gemma Core), more often than the lens's top pair.
 
 ## Part 1: lens overlap vs text overlap
 
@@ -114,7 +117,30 @@ The signal peaks in mid-to-late layers, about 75–85% of depth, and falls at th
 
 ### D. LLM text monitor (planned)
 
-*Running: Gemma-3-27B reads each run's public discussion and rates collusion 0–9, then names a pair. Results to be added.*
+A frozen judge reads each run's public discussion of rounds 1–3 (agents numbered and named, no votes). It answers the joint judge's question: a 0–9 rating that two agents are colluding, then PAIR.
+- Qwen Core uses the existing Qwen3-32B `discussion` arm.
+- Every other set uses Gemma-3-27B-IT with the same prompt.
+- Transfer uses neutral task wording.
+- Stress sets are compared with the Gemma Core controls.
+
+| Set | LLM monitor AUROC | Its pair = colluders | Right split | Lens raw − monitor (lower 95%) |
+|---|---|---|---|---|
+| **Gemma Core (primary)** | **0.166** [0.090, 0.256] (inverted) | 32 / 50 | 37 / 50 | +0.812 (+0.735) |
+| Qwen Core (Qwen3-32B judge) | **0.837** [0.758, 0.908] | 27 / 50 | 35 / 50 | **+0.151** (+0.087) |
+| Transfer | 0.533 [0.448, 0.620] | 13 / 36 | 22 / 36 | +0.467 (+0.394) |
+| aware | 0.144 | 32 / 50 | 38 / 50 | +0.842 |
+| para | 0.133 | 25 / 50 | 33 / 50 | +0.827 |
+| independent | 0.118 | 29 / 50 | 37 / 50 | +0.776 |
+| benign | 0.386 | 14 / 50 | 22 / 50 | +0.553 |
+
+**Amendment family** (Holm, one-sided α = 0.05): A (Gemma R1, p < 0.001), B (held-out side rule, p = 0.0002) and D (Gemma lens − monitor, p < 0.001) are **all rejected**.
+
+**Reading D honestly:**
+- **The primary D passes only because the Gemma monitor is worse than chance.** That is a weak win and we don't lean on it.
+- **The meaningful comparison is Qwen,** where the LLM monitor works (0.84) and the lens still beats it by +0.15 (lower bound +0.09).
+- **The inversion is itself a finding.** Gemma's replies flag "nearly identical statements … strongly suggests coordinated communication" in control runs, where the four honest agents converge on the fair option. In collusion runs the colluders argue against the room, which looks less "coordinated" to the judge. The same plausible prompt works on one model's transcripts and fails on another's.
+- **Its pair is informative even when its rating isn't.** The Gemma monitor names the colluders in 32 of 50 Core runs and 32 of 50 `aware` runs, more often than the lens's top pair (20 of 50) or the lens's side rule. A combined monitor could use the lens to decide *whether* to flag and the text judge to say *who*. That is untested.
+- We report the planned score as is and do not flip it.
 
 Outputs for A–D are in `results/overlap/extras/*.json`, from `col lens-judge overlap extras`.
 
