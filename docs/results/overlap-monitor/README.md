@@ -126,7 +126,7 @@ The signal peaks in mid-to-late layers, about 75–85% of depth, and falls at th
 
 ### D. LLM text monitor (planned)
 
-A frozen judge reads each run's public discussion of rounds 1–3 (agents numbered and named, no votes). It answers the joint judge's question: a 0–9 rating that two agents are colluding, then PAIR.
+An off-the-shelf LLM judge (no training or fine-tuning) reads each run's public discussion of rounds 1–3 (agents numbered and named, no votes). It answers the joint judge's question: a 0–9 rating that two agents are colluding, then PAIR.
 - Qwen Core uses the existing Qwen3-32B `discussion` arm.
 - Every other set uses Gemma-3-27B-IT with the same prompt.
 - Transfer uses neutral task wording.
@@ -157,7 +157,7 @@ Outputs for A–D are in `results/overlap/extras/*.json`, from `col lens-judge o
 
 ### E. A second stage that reads the shared tokens (planned): null
 
-A frozen Gemma judge sees only the raw lens tokens exclusive to each side of the split (no transcript, names or roles). It rates 0–9 whether one pair shares a hidden agenda to push an outcome.
+An off-the-shelf Gemma judge sees only the raw lens tokens exclusive to each side of the split (no transcript, names or roles). It rates 0–9 whether one pair shares a hidden agenda to push an outcome.
 
 | Contrast | Stage 2 | Lens alone | Stage 2 − lens (lower 95%) |
 |---|---|---|---|

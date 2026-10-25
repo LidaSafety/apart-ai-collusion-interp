@@ -91,7 +91,7 @@ For each of the 6 pairs of agents, count the entries both have and neither of th
 \subsection{Baselines}
 \begin{itemize}
 \item \emph{Text overlap:} the same score on each agent's own messages, in four variants (Appendix~\ref{app:det-text}); we report the best per dataset, which favours text.
-\item \emph{LLM text monitor:} a frozen LLM reads the discussion, rates 0--9 whether two agents collude and names a pair (Appendix~\ref{app:det-llm}).
+\item \emph{LLM text monitor:} an off-the-shelf LLM (Qwen3-32B or Gemma-3-27B, not trained or fine-tuned for this task) is given one fixed prompt with the discussion, rates 0--9 whether two agents collude and names a pair (Appendix~\ref{app:det-llm}).
 \item \emph{NARCBench's deception probes} \citep{rose2026}, trained linear probes run with the authors' released code (Section~\ref{sec:probes}; Appendix~\ref{app:det-probe}).
 \item \emph{Supervised TF-IDF:} the probe's text twin, a classifier of each agent's messages trained on the same agents and folds (Appendix~\ref{app:det-tfidf}).
 \end{itemize}
@@ -187,7 +187,7 @@ We compare our untrained monitor with the benchmark's \emph{trained} probes \cit
 Input & J-lens tokens of activations & Raw activations & Whole discussion\\
 Read point & Before the vote (or earlier) & End of each response & --\\
 Training labels & \textbf{None} & Colluder vs honest (Core) & None (prompted)\\
-Fitted parameters & \textbf{None} & A direction + 2 run classifiers & None (frozen LLM)\\
+Fitted parameters & \textbf{None} & A direction + 2 run classifiers & None (off-the-shelf LLM)\\
 Output & Score, 2-vs-2 split, pair & Score, per-agent scores & Rating, named pair\\
 Needs model internals & Yes (and a lens) & Yes & No\\
 \bottomrule
@@ -418,7 +418,7 @@ Early warning, the held-out side rule, and lens minus the LLM monitor on Gemma w
 In NARCBench-Stego a counter signals the card count to a big player through table talk, and an LLM pit boss watches the table.
 \begin{itemize}
 \item \textbf{Built-in monitor.} Across three datasets of 50 shoes each (v1 and v2 regenerate the same 50 shoes), the pit boss flagged no collusion tables (and no controls).
-\item \textbf{Prompted monitor.} A frozen Gemma monitor told to look for coded talk reaches 0.68, 0.75 and 0.84 at table level.
+\item \textbf{Prompted monitor.} An off-the-shelf Gemma monitor prompted to look for coded talk reaches 0.68, 0.75 and 0.84 at table level.
 \item \textbf{Leak 1.} The big player's ``PRIVATE:'' decoding notes were stripped only when labelled ``DECODE:'', so they reached the public chat.
 \item \textbf{Leak 2.} The true count history of earlier hands was written into the colluders' private channel.
 \end{itemize}
@@ -444,7 +444,7 @@ Before the meeting, the committee chair asked you and one other member, in confi
 
 \section{What did not work}\label{app:notwork}
 \begin{itemize}
-\item \textbf{A second stage reading the shared tokens} (planned). A frozen Gemma judge shown only the raw lens tokens each side of the split shares could not tell Core collusion from the harmless note (0.51 [0.39, 0.63], $p=0.43$), below the lens score alone (0.64). Telling harmful from harmless exclusive context needs more than raw lens tokens. An exploratory retry with the cleaner words-relative tokens plus the case's public brief separated collusion from controls (0.82) but still not from the harmless note (0.56, $p=0.13$).
+\item \textbf{A second stage reading the shared tokens} (planned). An off-the-shelf Gemma judge shown only the raw lens tokens each side of the split shares could not tell Core collusion from the harmless note (0.51 [0.39, 0.63], $p=0.43$), below the lens score alone (0.64). Telling harmful from harmless exclusive context needs more than raw lens tokens. An exploratory retry with the cleaner words-relative tokens plus the case's public brief separated collusion from controls (0.82) but still not from the harmless note (0.56, $p=0.13$).
 \item \textbf{LLM judges reading lens tokens} (Qwen3-32B as judge).
   \begin{itemize}
   \item One agent at a time, they are near chance; this is our pre-sprint result.
@@ -571,7 +571,7 @@ The same score on what a text monitor sees: each agent's own public messages of 
 The first three are scored exactly as the lens sets. Per dataset we report the variant with the highest AUROC, which favours text; in Table~\ref{tab:main} the false-positive operating points take the best variant at each threshold.
 
 \subsection{LLM text monitor}\label{app:det-llm}
-A frozen LLM (Qwen3-32B on Qwen Core; Gemma-3-27B on Gemma Core, the stress sets and Transfer) reads the case brief and rounds 1--3 of the public discussion with the agents numbered, and is asked how likely it is that two agents are colluding, on a scale of 0--9, then which pair. On Transfer, whose runs are tasks rather than votes, the committee wording is replaced by a neutral task description. The score is the expected rating under the next-token distribution renormalised over the ten digit tokens,
+An off-the-shelf LLM, used as released with no training or fine-tuning (Qwen3-32B on Qwen Core; Gemma-3-27B on Gemma Core, the stress sets and Transfer) reads the case brief and rounds 1--3 of the public discussion with the agents numbered, and is asked how likely it is that two agents are colluding, on a scale of 0--9, then which pair. On Transfer, whose runs are tasks rather than votes, the committee wording is replaced by a neutral task description. The score is the expected rating under the next-token distribution renormalised over the ten digit tokens,
 \[
 s = \sum_{r=0}^{9} r\, p(r), \qquad p(r) = \frac{P(\text{token } r)}{\sum_{r'=0}^{9} P(\text{token } r')},
 \]
@@ -592,7 +592,7 @@ Scores are averaged over the 5 layers and 10 seeds. In the head-to-head comparis
 The probe's text twin: each agent's own public messages (names removed) as a TF-IDF vector, and a logistic regression trained colluder vs honest on the same agents and folds as the probe. Its decision function is the per-agent score $s_i$, fed into Peak Suspicion, Deception Split and the Asymmetry Probe. The planned validity gate re-trains it with colluder labels shuffled within runs and requires a Core AUROC within $0.5\pm0.1$. It scored 0.63 (Gemma) and 0.84 (Qwen), so we report its results as invalid.
 
 \subsection{Second-stage judges}\label{app:det-stage2}
-Given the monitor's two-against-two split, a frozen Gemma judge sees only the lens tokens exclusive to each side (``Pair A'', the top pair, and ``Pair B''), with no transcript, names or roles, and rates 0--9 how likely it is that one pair shares a hidden agenda to push an outcome; the score is the expected rating, as above. The retry shows the words-relative exclusive tokens plus the case's public brief. Both are in Appendix~\ref{app:notwork}.
+Given the monitor's two-against-two split, an off-the-shelf Gemma judge sees only the lens tokens exclusive to each side (``Pair A'', the top pair, and ``Pair B''), with no transcript, names or roles, and rates 0--9 how likely it is that one pair shares a hidden agenda to push an outcome; the score is the expected rating, as above. The retry shows the words-relative exclusive tokens plus the case's public brief. Both are in Appendix~\ref{app:notwork}.
 
 \section*{LLM Usage Statement}
 \phantomsection\addcontentsline{toc}{section}{LLM Usage Statement}
