@@ -7,7 +7,7 @@ Experiments on multi-agent collusion in LLM agents: detection, fragility, and co
 
 ## Results
 
-- **Sprint report:** [`docs/sprint/latex/report.pdf`](docs/sprint/latex/report.pdf), a label-free activation monitor for hidden coalitions (Apart AI Collusion Research Sprint, Oct 2026).
+- **Sprint report:** [`docs/sprint/latex/report.pdf`](docs/sprint/latex/report.pdf), *Reading Exclusive Context from Activations: A Label-Free Monitor for Colluding LLM Agents* (Apart AI Collusion Research Sprint, Oct 2026).
 - **Per experiment:** `docs/results/<experiment>/README.md`, each with its pre-registered plan in `docs/plans/`. The series overview is [`docs/results/lens-judge-series.md`](docs/results/lens-judge-series.md).
 
 ## Setup
