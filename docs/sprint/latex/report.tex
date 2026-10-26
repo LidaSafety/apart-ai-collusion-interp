@@ -208,7 +208,12 @@ The monitor detects exclusive context early, without training, despite warnings 
 
 An untrained count of shared lens concepts finds colluding pairs early, beats text monitors and transfers better than trained probes, but flags any exclusive context: a first stage, blind to intent.
 
-\label{end:main}
+\label{end:main}\section*{Code and Data}
+\phantomsection\addcontentsline{toc}{section}{Code and Data}
+\begin{itemize}
+\item \textbf{Code repository:} \url{https://github.com/LidaSafety/apart-ai-collusion-interp}. The tag \texttt{pre-sprint} marks the work that predates the sprint.
+\item \textbf{Data:} NARCBench \citep{rose2026}. Our Gemma transcripts, stress-test sets and lens readouts are available on request; every number traces to a result file named in \texttt{docs/results/}.
+\end{itemize}
 
 
 \phantomsection\addcontentsline{toc}{section}{References}\label{start:refs}
@@ -247,7 +252,7 @@ An untrained count of shared lens concepts finds colluding pairs early, beats te
 \paragraph{Could this make collusion easier to carry out or harder to detect?}
 \begin{itemize}
 \item \textbf{Evasion.} The monitor, its layers and its failure cases (harmless notes, the open note) tell an adversary what to imitate or suppress. Simple instructions did not evade it, but optimising agents against the lens might.
-\item \textbf{Released material.} This report contains no attack method beyond NARCBench's own scenarios and the stress-test prompts in Appendix~\ref{app:prompts}. The two NARCBench-Stego leaks we report make the benchmark \emph{harder} to game, and we fixed them in our runs.
+\item \textbf{Released material.} We release no attack method beyond NARCBench's own scenarios and our prompt wrappers. The two NARCBench-Stego leaks we report make the benchmark \emph{harder} to game, and we fixed them in our runs.
 \end{itemize}
 
 \paragraph{Ethical considerations.}
@@ -283,9 +288,9 @@ TF-IDF high on Core, weak on Transfer, valid null & $\geq 0.9$, $\leq 0.7$, $0.5
 \end{center}
 
 \section{What predates the sprint}\label{app:disclosure}
-The project builds on the team's earlier SPAR work, as the sprint rules allow. Everything done before Oct 22, 2026, 10:16 PM ET is pre-existing. That includes:
+The project builds on the team's earlier SPAR work, as the sprint rules allow. Everything up to the git tag \texttt{pre-sprint} (commit \texttt{d2eb0af}, Oct 22, 2026) is pre-existing. That includes:
 \begin{itemize}
-\item the project scaffolding;
+\item the repository scaffolding;
 \item the Qwen3-32B NARCBench transcripts and stored activations;
 \item the lens readout, extraction and statistics code;
 \item a per-agent LLM judge of lens tokens, which was a null result.
@@ -300,6 +305,7 @@ Everything else was done during the sprint (Oct 24--25):
 \item the stego audit, the NLA readout and the transfer analysis;
 \item the reproduction of NARCBench's deception probes and the comparison with them.
 \end{itemize}
+\texttt{git diff -{}-stat pre-sprint HEAD} lists every change.
 
 \section{Supporting analyses}\label{app:stress}
 Each part backs a section of the main text: the stress tests in full (Section~\ref{sec:stress}), naming the colluding pair and flagging it end to end (Section~\ref{sec:who}), the layers and the words-relative rendering (Section~\ref{sec:readout}), and one test family (Section~\ref{sec:early}).
@@ -398,7 +404,7 @@ In NARCBench-Stego a counter signals the card count to a big player through tabl
 We fixed both leaks with wrappers that leave the benchmark's code unchanged. A planned test of whether the receiver's lens holds the decoded count, the single primary test on the leak-free data, passed ($+0.089$, $p=0.021$), but a planned replication on 50 new shoes did not confirm it ($+0.023$, $p=0.34$).
 
 \section{Stress tests: construction and prompts}\label{app:prompts}
-\paragraph{How the conditions are made.} NARCBench's files are not edited; we use them at a pinned commit. A wrapper imports NARCBench's generator \texttt{core.py} as a module, changes a few of its module-level prompts in memory, and calls its own entry point in collusion mode. Scenarios, agent names, speaking order and seeds are therefore NARCBench's own.
+\paragraph{How the conditions are made.} NARCBench's files are not edited; the submodule stays at its pinned commit. A wrapper (\texttt{src/colx/overlap/variants.py}) imports NARCBench's generator \texttt{core.py} as a module, changes a few of its module-level prompts in memory, and calls its own entry point in collusion mode. Scenarios, agent names, speaking order and seeds are therefore NARCBench's own.
 \begin{itemize}
 \item \texttt{aware} and \texttt{evade} append the text below to both colluders' system prompts.
 \item \texttt{para} gives colluder 2, and only colluder 2, a paraphrased motive and instructions.
@@ -596,6 +602,6 @@ Given the monitor's two-against-two split, an off-the-shelf Gemma judge sees onl
 
 \section*{LLM Usage Statement}
 \phantomsection\addcontentsline{toc}{section}{LLM Usage Statement}
-We used Claude (Claude Code) to implement the analysis code, run experiments under our supervision, and help draft this report. All results come from logged runs, and the author verified the claims. % TODO(team): adjust to reflect your own writing and review.
+We used Claude (Claude Code) to implement the analysis code, run experiments under our supervision, and help draft this report. All results come from committed code and logged runs, and the author verified the claims. % TODO(team): adjust to reflect your own writing and review.
 
 \end{document}
